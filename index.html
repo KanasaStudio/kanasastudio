@@ -14,7 +14,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=Inter:wght@400;500;600&family=Space+Grotesk:wght@400;500;600&display=swap">
-  <link rel="stylesheet" href="css/site.css?v=20261024b">
+  <link rel="stylesheet" href="css/site.css?v=20261024c">
   <script>document.documentElement.classList.remove("no-js")</script>
 </head>
 <body data-button="solid">
@@ -24,6 +24,7 @@
       <a class="brand" id="brand" href="#/" aria-label="Home"></a>
       <nav class="nav" id="nav" aria-label="Main"></nav>
       <div style="display:flex;gap:.6rem;align-items:center">
+        <div class="seg" id="fx" role="group" aria-label="Display currency" hidden><button data-cur="IDR" aria-pressed="true">IDR</button><button data-cur="USD" aria-pressed="false">USD</button></div>
         <button class="btn ghost sm cart-btn" id="cart-open" aria-label="Open order cart">Order <span class="count" id="cart-count" hidden>0</span></button>
         <button class="btn ghost sm menu-btn" id="menu-btn" aria-label="Menu" aria-controls="nav" aria-expanded="false">Menu</button>
       </div>
@@ -33,7 +34,7 @@
   <main id="app" tabindex="-1"><div class="container page"><div class="skeleton" style="height:18rem"></div></div></main>
 
   <footer class="site-footer"><div class="container row">
-    <span id="footer-text"></span><ul id="footer-links"></ul>
+    <span id="footer-text"></span><small class="muted" id="fx-note" style="flex-basis:100%"></small><ul id="footer-links"></ul>
   </div></footer>
 
   <div class="scrim" id="scrim"></div>
@@ -45,6 +46,6 @@
   </aside>
 
   <noscript><div class="container page">This site needs JavaScript to load services and orders.</div></noscript>
-  <script type="module" src="js/app.js?v=20261024b"></script>
+  <script type="module" src="js/app.js?v=20261024c"></script>
 </body>
 </html>

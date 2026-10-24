@@ -161,3 +161,8 @@ details.faq p { color: var(--muted); margin: var(--space-3) 0 0; max-width: 46re
 .poster img { width: 100%; height: auto; transition: transform var(--dur-3) var(--ease); }
 .poster:hover img { transform: scale(1.02); }
 @media (max-width: 900px) { .prow { grid-template-columns: 2.5rem 1fr; } .prow .tiers { grid-column: 1 / -1; } }
+
+/* currency toggle */
+.seg { display: inline-flex; border: var(--border-w) solid var(--border); border-radius: var(--radius); overflow: hidden; }
+.seg button { background: transparent; border: 0; color: var(--muted); padding: .45rem .7rem; cursor: pointer; font: 500 .8125rem var(--font-mono); transition: background var(--dur-1), color var(--dur-1); }
+.seg button[aria-pressed="true"] { background: var(--text); color: var(--bg); }

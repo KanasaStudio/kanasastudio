@@ -1,6 +1,7 @@
 import { sb } from "./db.js";
 import { esc, safeUrl, $, $$, money, range, fmtDate, paragraphs, store, toast, uid, STATUS } from "./util.js";
 import { applyTheme } from "./theme.js";
+import { getRate } from "./fx.js";
 import * as cart from "./cart.js";
 
 const S = {
@@ -12,6 +13,14 @@ const S = {
 const app = $("#app");
 const set = (k, d = {}) => S.settings[k] ?? d;
 const cur = () => set("order").currency || "IDR";
+
+/* ---------- display currency (live USD conversion, display only) ---------- */
+S.fx = { rate: null, at: null, mode: store.get("kns_cur", "IDR") };
+const usdOn = () => S.fx.mode === "USD" && S.fx.rate && cur() === "IDR" && !set("order").fx_disabled;
+const m0 = (n) => usdOn() ? money(+n / S.fx.rate, "USD") : money(n, cur());
+const M = (n) => (n == null || n === "") ? "—" : (usdOn() ? "≈ " : "") + m0(n);
+const R = (min, max) => min == null ? "Quotation" : (usdOn() ? "≈ " : "") + ((max != null && +max !== +min) ? `${m0(min)} – ${m0(max)}` : m0(min));
+const fxNote = () => usdOn() ? `USD amounts are approximate (1 USD = Rp${Math.round(S.fx.rate).toLocaleString("id-ID")}, updated ${new Date(S.fx.at).toLocaleString()}). Orders and quotations are in IDR.` : "";
 
 /* ---------- data ---------- */
 async function loadSettings() {
@@ -62,7 +71,7 @@ function svcPrice(s) {
   const maxs = [s.price_max, s.price_min, ...s.service_tiers.map((t) => t.price_max ?? t.price_min)].filter((v) => v != null).map(Number);
   if (!mins.length) return { text: "Quotation", sub: "" };
   const lo = Math.min(...mins), hi = Math.max(...maxs);
-  return { text: lo === hi ? money(lo, cur()) : `${money(lo, cur())} – ${money(hi, cur())}`, sub: "from DB" };
+  return { text: lo === hi ? M(lo, cur()) : `${M(lo, cur())} – ${M(hi, cur())}`, sub: "from DB" };
 }
 const statusPill = (s) => s.status === "available" ? "" : `<span class="tag">${s.status === "coming_soon" ? "Coming soon" : "Unavailable"}</span>`;
 function svcRow(s, i) {
@@ -160,8 +169,8 @@ async function viewService(slug) {
       ${s.turnaround ? `<p class="muted" style="margin-top:2rem">Estimated turnaround: ${esc(s.turnaround)}</p>` : ""}
       ${s.revisions_included != null ? `<p class="muted">Revisions included: ${esc(s.revisions_included)}</p>` : ""}</div>
     <aside><form id="addform" data-service="${esc(s.id)}"><div class="eyebrow">Configure</div>
-      ${tiers.length ? `<div class="tier-pick" role="radiogroup" aria-label="Tier">${tiers.map((t, i) => `<label><span><input type="radio" name="tier" value="${esc(t.id)}" ${i === 0 ? "checked" : ""}>${esc(t.name)}</span><span class="mono">${esc(s.custom_quote ? "Quotation" : range(t.price_min, t.price_max ?? t.price_min, cur()))}</span></label>`).join("")}</div>` : ""}
-      ${s.service_addons.filter((a) => a.is_active).length ? `<div class="label">Add-ons</div><div class="tier-pick">${s.service_addons.filter((a) => a.is_active).map((a) => `<label><span><input type="checkbox" name="addon" value="${esc(a.id)}">${esc(a.name)}</span><span class="mono">+${money(a.price, cur())}</span></label>`).join("")}</div>` : ""}
+      ${tiers.length ? `<div class="tier-pick" role="radiogroup" aria-label="Tier">${tiers.map((t, i) => `<label><span><input type="radio" name="tier" value="${esc(t.id)}" ${i === 0 ? "checked" : ""}>${esc(t.name)}</span><span class="mono">${esc(s.custom_quote ? "Quotation" : R(t.price_min, t.price_max ?? t.price_min, cur()))}</span></label>`).join("")}</div>` : ""}
+      ${s.service_addons.filter((a) => a.is_active).length ? `<div class="label">Add-ons</div><div class="tier-pick">${s.service_addons.filter((a) => a.is_active).map((a) => `<label><span><input type="checkbox" name="addon" value="${esc(a.id)}">${esc(a.name)}</span><span class="mono">+${M(a.price, cur())}</span></label>`).join("")}</div>` : ""}
       <div class="field"><label for="qty">Quantity</label><input class="input" id="qty" name="qty" type="number" min="1" max="50" value="1"></div>
       <div class="summary" style="margin-bottom:1rem"><div class="line total"><span>Estimate</span><span id="est">—</span></div></div>
       <p class="muted" style="font-size:.8125rem">Estimates are indicative. The studio confirms the final price in a quotation.</p>
@@ -171,18 +180,18 @@ function wireService() {
   const f = $("#addform"); if (!f) return;
   const s = S.services.find((x) => x.id === f.dataset.service);
   const line = () => ({ service_id: s.id, tier_id: f.tier?.value || null, addon_ids: $$('input[name="addon"]:checked', f).map((i) => i.value), quantity: Math.max(1, Math.min(50, +f.qty.value || 1)) });
-  const upd = () => { const e = cart.estimate([line()], S.services); $("#est").textContent = e.quote ? "Quotation" : range(e.min, e.max, cur()); };
+  const upd = () => { const e = cart.estimate([line()], S.services); $("#est").textContent = e.quote ? "Quotation" : R(e.min, e.max, cur()); };
   f.addEventListener("input", upd); upd();
   f.addEventListener("submit", (ev) => { ev.preventDefault(); cart.add(line()); toast("Added to your order.", "ok"); openDrawer(); });
 }
-const tierPrice = (t) => t.price_min == null ? "Quotation" : range(t.price_min, t.price_max ?? t.price_min, cur());
+const tierPrice = (t) => t.price_min == null ? "Quotation" : R(t.price_min, t.price_max ?? t.price_min, cur());
 async function viewPricing() {
   setMeta("Pricing", "Price list and service illustration.");
   const all = await loadServices(), pr = set("pricing"), notes = set("pricing_notes", []);
   const live = all.filter((x) => x.status !== "coming_soon"), soon = all.filter((x) => x.status === "coming_soon");
   const a = safeUrl(pr.price_image_url), b = safeUrl(pr.illustration_image_url);
   const fig = (u, alt) => u ? `<a class="poster" href="${esc(u)}" target="_blank" rel="noopener" title="Open full size"><img src="${esc(u)}" alt="${esc(alt)}" loading="lazy" decoding="async"></a>` : "";
-  return `<div class="container page"><div class="page-head"><span class="eyebrow">Pricing</span><h1 style="margin-top:1rem;font-size:var(--fs-h2)">Price list</h1><p>Prices in ${esc(cur())}. This table is the current price list; final price depends on complexity, details, revisions and deadline.</p></div>
+  return `<div class="container page"><div class="page-head"><span class="eyebrow">Pricing</span><h1 style="margin-top:1rem;font-size:var(--fs-h2)">Price list</h1><p>Prices in ${esc(usdOn() ? "USD (converted live)" : cur())}. This table is the current price list; final price depends on complexity, details, revisions and deadline.</p></div>
     ${live.length ? live.map((s, i) => `<div class="prow reveal"><span class="n mono muted">${String(i + 1).padStart(2, "0")}</span>
       <div><h3><a href="#/services/${esc(s.slug)}" style="text-decoration:none">${esc(s.name)}</a></h3><p class="muted" style="margin:.4rem 0 0;font-size:.9375rem">${esc(s.summary || "")}</p></div>
       <ul class="tiers">${s.service_tiers.filter((t) => t.is_active).map((t) => `<li><span>${esc(t.name)}${t.description ? `<small class="muted">${esc(t.description)}</small>` : ""}</span><span class="mono">${esc(tierPrice(t))}</span></li>`).join("") || `<li><span>${esc(svcPrice(s).text)}</span></li>`}</ul></div>`).join("") : emptyBox("No services published", "Check back soon.")}
@@ -252,7 +261,7 @@ async function viewOrder() {
       <div class="field"><label class="req" for="f-name">Name or nickname</label><input class="input" id="f-name" data-bind="client.name" value="${esc(c.name)}" maxlength="80" autocomplete="name" aria-invalid="${!!o().errors.name}">${errT("name")}</div>
       <div class="field"><label class="req" for="f-email">Email</label><input class="input" id="f-email" type="email" data-bind="client.email" value="${esc(c.email)}" autocomplete="email" aria-invalid="${!!o().errors.email}">${errT("email")}</div>
       <div class="field"><label for="f-discord">Discord username or other contact</label><input class="input" id="f-discord" data-bind="client.discord" value="${esc(c.discord)}" maxlength="80"></div>
-      <div class="field"><label for="f-budget">Budget (${esc(cur())})${ord.min_budget ? ` — minimum ${money(ord.min_budget, cur())}` : ""}</label><input class="input" id="f-budget" type="number" min="0" data-bind="budget" value="${esc(o().budget)}">${errT("budget")}</div>
+      <div class="field"><label for="f-budget">Budget (${esc(cur())})${ord.min_budget ? ` — minimum ${M(ord.min_budget, cur())}` : ""}</label><input class="input" id="f-budget" type="number" min="0" data-bind="budget" value="${esc(o().budget)}">${errT("budget")}</div>
       <div class="field"><label for="f-deadline">Deadline</label><input class="input" id="f-deadline" type="date" min="${new Date().toISOString().slice(0, 10)}" data-bind="deadline" value="${esc(o().deadline)}">${errT("deadline")}</div></div>
     <div><div class="field"><label class="req" for="f-brief">Project description</label><textarea class="input" id="f-brief" data-bind="brief" maxlength="4000" aria-invalid="${!!o().errors.brief}">${esc(o().brief)}</textarea>${errT("brief")}</div>
       ${lines.map((l) => { const s = services.find((x) => x.id === l.service_id); return (s?.brief_fields || []).map((f) => `<div class="field"><label class="${f.required ? "req" : ""}" for="bf-${esc(l.uid + f.key)}">${esc(s.name)} — ${esc(f.label)}</label>${f.type === "textarea" ? `<textarea class="input" id="bf-${esc(l.uid + f.key)}" data-line="${esc(l.uid)}" data-key="${esc(f.key)}" maxlength="1500">${esc(l.brief?.[f.key] || "")}</textarea>` : `<input class="input" id="bf-${esc(l.uid + f.key)}" data-line="${esc(l.uid)}" data-key="${esc(f.key)}" maxlength="300" value="${esc(l.brief?.[f.key] || "")}">`}${errT(l.uid + f.key)}</div>`).join(""); }).join("")}
@@ -260,9 +269,9 @@ async function viewOrder() {
         <ul class="upload-list">${o().files.map((f, i) => `<li><span>${esc(f.name)}</span><button class="linkbtn" data-act="rmfile" data-i="${i}">Remove</button></li>`).join("")}</ul></div></div></div>
     <div style="display:flex;gap:.75rem"><button class="btn ghost" data-act="back">Back</button>${nextBtn("Review order")}</div>`;
   if (step === 3) body = `<div class="two"><div class="summary">${lines.map((l) => { const s = services.find((x) => x.id === l.service_id), t = s?.service_tiers.find((x) => x.id === l.tier_id); const le = cart.estimate([l], services);
-      return `<div class="line"><span>${esc(s?.name)} <span class="muted">${esc(t?.name || "")} ×${l.quantity}</span></span><span class="mono">${le.quote ? "Quotation" : range(le.min, le.max, cur())}</span></div>`; }).join("")}
-      <div class="line total"><span>Estimated total</span><span>${e.min == null ? "Quotation" : range(e.min, e.max, cur())}${e.quote && e.min != null ? " + quotation items" : ""}</span></div>
-      <p class="muted" style="font-size:.8125rem;margin:.5rem 0 0">Indicative only. No payment is taken on this site; the studio replies with a quotation to confirm scope and price.</p></div>
+      return `<div class="line"><span>${esc(s?.name)} <span class="muted">${esc(t?.name || "")} ×${l.quantity}</span></span><span class="mono">${le.quote ? "Quotation" : R(le.min, le.max, cur())}</span></div>`; }).join("")}
+      <div class="line total"><span>Estimated total</span><span>${e.min == null ? "Quotation" : R(e.min, e.max, cur())}${e.quote && e.min != null ? " + quotation items" : ""}</span></div>
+      <p class="muted" style="font-size:.8125rem;margin:.5rem 0 0">${esc(fxNote())} Indicative only. No payment is taken on this site; the studio replies with a quotation to confirm scope and price.</p></div>
     <div class="summary"><div class="line"><span class="muted">Name</span><span>${esc(c.name)}</span></div><div class="line"><span class="muted">Email</span><span>${esc(c.email)}</span></div>${c.discord ? `<div class="line"><span class="muted">Contact</span><span>${esc(c.discord)}</span></div>` : ""}
       ${o().deadline ? `<div class="line"><span class="muted">Deadline</span><span>${esc(o().deadline)}</span></div>` : ""}<div class="line"><span class="muted">Files</span><span>${o().files.length}</span></div><p class="muted" style="margin:.8rem 0 0;white-space:pre-wrap">${esc(o().brief)}</p></div></div>
     ${o().error ? `<div class="notice" role="alert">${esc(o().error)}</div>` : ""}
@@ -276,7 +285,7 @@ function orderDone() {
   return `<div class="container page"><div class="page-head"><span class="eyebrow">Received</span><h1 style="margin-top:1rem;font-size:var(--fs-h2)">Request sent</h1><p>Your request is saved. Keep this reference and your private tracking link.</p></div>
     <div class="refbox">${esc(d.reference)}</div>
     <div class="notice" style="margin-top:1.5rem"><strong>Save your tracking link — it is shown only once.</strong><br><input class="input" readonly value="${esc(link)}" onfocus="this.select()" style="margin:.7rem 0"><button class="btn sm" data-act="copy" data-v="${esc(link)}">Copy link</button></div>
-    <p class="muted">${d.needs_quote ? "Some items need a custom quotation." : ""} ${d.estimated_min != null ? `Estimate: ${range(d.estimated_min, d.estimated_max, d.currency)}.` : ""} The studio will review your brief and reply with a quotation.</p>
+    <p class="muted">${d.needs_quote ? "Some items need a custom quotation." : ""} ${d.estimated_min != null ? `Estimate: ${R(d.estimated_min, d.estimated_max, d.currency)}.` : ""} The studio will review your brief and reply with a quotation.</p>
     <p>${ord.confirm_discord && c.discord_url ? `<a class="btn ghost" href="${esc(safeUrl(c.discord_url))}" target="_blank" rel="noopener noreferrer">Message us on Discord</a> ` : ""}<a class="btn ghost" href="#/track?ref=${esc(d.reference)}&t=${esc(d.access_token)}">Track this order</a></p></div>`;
 }
 function validateStep() {
@@ -286,7 +295,7 @@ function validateStep() {
     if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(c.email.trim())) er.email = "Enter a valid email address.";
     if (o().brief.trim().length < 10) er.brief = "Describe the project (at least 10 characters).";
     if (o().budget !== "" && +o().budget < 0) er.budget = "Budget cannot be negative.";
-    if (ord.min_budget && o().budget !== "" && +o().budget < +ord.min_budget) er.budget = `Minimum budget is ${money(ord.min_budget, cur())}.`;
+    if (ord.min_budget && o().budget !== "" && +o().budget < +ord.min_budget) er.budget = `Minimum budget is ${M(ord.min_budget, cur())}.`;
     if (o().deadline && o().deadline < new Date().toISOString().slice(0, 10)) er.deadline = "Deadline cannot be in the past.";
     for (const l of lines) { const s = S.services.find((x) => x.id === l.service_id); for (const f of s?.brief_fields || []) if (f.required && !String(l.brief?.[f.key] || "").trim()) er[l.uid + f.key] = "Required."; }
   }
@@ -326,7 +335,7 @@ async function viewTrack(q) {
    ${d ? `<div class="two"><div><div class="eyebrow">${esc(d.reference)}</div><h2 style="margin:.6rem 0 1.5rem">${esc(STATUS[d.status] || d.status)}</h2>
       <ul class="timeline">${d.history.map((h) => `<li><strong>${esc(STATUS[h.to_status] || h.to_status)}</strong><div class="muted mono">${esc(fmtDate(h.created_at))}</div>${h.note ? `<div>${esc(h.note)}</div>` : ""}</li>`).join("")}</ul></div>
      <div><div class="summary">${d.items.map((i) => `<div class="line"><span>${esc(i.service_name)} <span class="muted">${esc(i.tier_name || "")} ×${i.quantity}</span></span></div>`).join("")}
-       ${d.quoted_total != null ? `<div class="line total"><span>Quoted total</span><span>${money(d.quoted_total, d.currency)}</span></div>` : `<div class="line"><span class="muted">Estimate</span><span>${d.estimated_min != null ? range(d.estimated_min, d.estimated_max, d.currency) : "Awaiting quotation"}</span></div>`}
+       ${d.quoted_total != null ? `<div class="line total"><span>Quoted total</span><span>${M(d.quoted_total, d.currency)}</span></div>` : `<div class="line"><span class="muted">Estimate</span><span>${d.estimated_min != null ? R(d.estimated_min, d.estimated_max, d.currency) : "Awaiting quotation"}</span></div>`}
        ${d.deadline ? `<div class="line"><span class="muted">Deadline</span><span>${esc(d.deadline)}</span></div>` : ""}</div>
       <h3 style="margin:2rem 0 1rem;font-size:1.1rem">Messages</h3>${d.messages.length ? d.messages.map((m) => `<div class="cart-line"><span class="eyebrow">${m.author_type === "admin" ? "Studio" : "You"} · ${esc(fmtDate(m.created_at))}</span><span style="white-space:pre-wrap">${esc(m.body)}</span></div>`).join("") : `<p class="muted">No messages yet.</p>`}
       <form id="replyform" style="margin-top:1rem"><div class="field"><label for="reply">Reply to the studio</label><textarea class="input" id="reply" maxlength="2000" required></textarea></div><button class="btn sm">Send</button> <button type="button" class="btn ghost sm" data-act="refresh">Refresh</button></form></div></div>`
@@ -351,9 +360,9 @@ function drawCart() {
     const t = s.service_tiers.find((x) => x.id === l.tier_id), le = cart.estimate([l], services);
     return `<div class="cart-line"><div class="top"><strong>${esc(s.name)}</strong><button class="linkbtn" data-act="rm" data-id="${esc(l.uid)}">Remove</button></div>
       <span class="muted">${esc(t?.name || "Custom")}${l.addon_ids.length ? ` + ${l.addon_ids.length} add-on` : ""}</span>
-      <div style="display:flex;justify-content:space-between;align-items:center"><input class="input" style="width:5rem;padding:.35rem .5rem" type="number" min="1" max="50" value="${l.quantity}" aria-label="Quantity" data-act="qty" data-id="${esc(l.uid)}"><span class="mono">${le.quote ? "Quotation" : range(le.min, le.max, cur())}</span></div></div>`; }).join("")
+      <div style="display:flex;justify-content:space-between;align-items:center"><input class="input" style="width:5rem;padding:.35rem .5rem" type="number" min="1" max="50" value="${l.quantity}" aria-label="Quantity" data-act="qty" data-id="${esc(l.uid)}"><span class="mono">${le.quote ? "Quotation" : R(le.min, le.max, cur())}</span></div></div>`; }).join("")
     : emptyBox("Nothing here yet", "Add a service to start an order.");
-  $("#drawer-total").textContent = !lines.length ? "—" : e.min == null ? "Quotation" : range(e.min, e.max, cur());
+  $("#drawer-total").textContent = !lines.length ? "—" : e.min == null ? "Quotation" : R(e.min, e.max, cur());
   $("#drawer-go").hidden = !lines.length;
 }
 function openDrawer() { loadServices().then(drawCart); $("#drawer").classList.add("open"); $("#scrim").classList.add("on"); $("#drawer").removeAttribute("inert"); }
@@ -452,9 +461,20 @@ if (new URLSearchParams(location.search).has("preview")) {
   parent.postMessage({ type: "kns-preview-ready" }, location.origin);
 }
 
+/* ---------- currency toggle ---------- */
+function drawFx() {
+  const box = $("#fx"), show = !!S.fx.rate && cur() === "IDR" && !set("order").fx_disabled;
+  box.hidden = !show; if (!show) return;
+  $$("button", box).forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.cur === (S.fx.mode === "USD" ? "USD" : "IDR"))));
+  const n = $("#fx-note"); if (n) n.textContent = fxNote();
+}
+$("#fx").addEventListener("click", (e) => { const b = e.target.closest("button[data-cur]"); if (!b) return; S.fx.mode = b.dataset.cur; store.set("kns_cur", S.fx.mode); drawFx(); route(true); if (S.services) drawCart(); });
+async function refreshFx(force) { const r = await getRate(force); if (r) { S.fx.rate = r.rate; S.fx.at = r.at; drawFx(); if (S.fx.mode === "USD") { route(true); if (S.services) drawCart(); } } }
+
 /* ---------- boot ---------- */
 (async () => {
   try { await loadSettings(); renderChrome(); } catch (e) { app.innerHTML = fail(e); return; }
   await route();
   loadServices().then(drawCart).catch(() => {});
+  refreshFx(); setInterval(() => refreshFx(true), 30 * 60 * 1000);   // live rate, refreshed every 30 min
 })();

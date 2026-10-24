@@ -6,6 +6,7 @@ const SVC_CATS = ["Model", "Animation", "Texturing", "Rigging", "UGC", "Other"];
 const swapOrder = async (table, a, b) => { await sb.from(table).update({ sort_order: b.sort_order }).eq("id", a.id); await sb.from(table).update({ sort_order: a.sort_order }).eq("id", b.id); };
 
 /* ================= SERVICES ================= */
+const friendly = (e) => { if (/slug_key/.test(e?.message || "")) return new Error("That URL slug is already used by another item. Change the slug field (or edit the existing item from the list)."); return e; };
 export async function viewServices(el, id) { return id ? svcEdit(el, id) : svcList(el); }
 async function svcList(el) {
   const d = must(await sb.from("services").select("*").order("sort_order"));
@@ -26,7 +27,7 @@ async function svcList(el) {
   }));
 }
 async function svcEdit(el, id) {
-  const isNew = id === "new";
+  let isNew = id === "new";
   const s = isNew ? { name: "", slug: "", category: "Model", summary: "", description: "", cover_url: "", cover_alt: "", price_min: null, price_max: null, custom_quote: true, deliverables: [], includes: [], excludes: [], turnaround: "", revisions_included: null, status: "available", publish_state: "draft", is_featured: false, sort_order: 999, brief_fields: [], service_tiers: [], service_addons: [] }
     : must(await sb.from("services").select("*, service_tiers(*), service_addons(*)").eq("id", id).single());
   const tiers = s.service_tiers.sort((a, b) => a.sort_order - b.sort_order), addons = s.service_addons.sort((a, b) => a.sort_order - b.sort_order), bf = [...s.brief_fields];
@@ -66,7 +67,7 @@ async function svcEdit(el, id) {
     if (errs.length) throw new Error([...new Set(errs)].join(" "));
     const file = $("#cov").files[0]; if (file) row.cover_url = await uploadPublic(file, "services");
     let sid = s.id;
-    if (isNew) sid = must(await sb.from("services").insert(row).select("id").single()).id; else must(await sb.from("services").update(row).eq("id", sid));
+    if (isNew) { sid = must(await sb.from("services").insert(row).select("id").single()).id; s.id = sid; isNew = false; } else must(await sb.from("services").update(row).eq("id", sid));
     for (const [table, list, orig] of [["service_tiers", tiers, s.service_tiers], ["service_addons", addons, s.service_addons]]) {
       const keep = list.filter((x) => x.id).map((x) => x.id), gone = orig.filter((x) => x.id && !keep.includes(x.id)).map((x) => x.id);
       if (gone.length) must(await sb.from(table).delete().in("id", gone));
@@ -89,7 +90,7 @@ async function pfList(el) {
   $$("[data-st]", el).forEach((b) => b.onclick = () => busy(b, async () => { const p = d[+b.dataset.i]; if (b.dataset.st === "published" && !p.cover_url && !confirm("This project has no cover image. Publish anyway?")) return; must(await sb.from("portfolio_projects").update({ status: b.dataset.st }).eq("id", p.id)); pfList(el); }));
 }
 async function pfEdit(el, id) {
-  const isNew = id === "new";
+  let isNew = id === "new";
   const p = isNew ? { title: "", slug: "", category: "Model", summary: "", description: "", software: [], service_types: [], specs: {}, cover_url: "", cover_alt: "", badge: "", external_url: "", status: "draft", is_featured: false, sort_order: 999, portfolio_media: [] }
     : must(await sb.from("portfolio_projects").select("*, portfolio_media(*)").eq("id", id).single());
   const media = p.portfolio_media.sort((a, b) => a.sort_order - b.sort_order);
@@ -115,7 +116,7 @@ async function pfEdit(el, id) {
     if (!row.title) throw new Error("Title is required."); if (!/^[a-z0-9-]+$/.test(row.slug)) throw new Error("Slug may only contain a–z, 0–9 and dashes.");
     const cov = $("#cov").files[0]; if (cov) row.cover_url = await uploadPublic(cov, "portfolio");
     if (row.status === "published" && !row.cover_url && !confirm("No cover image. Publish anyway?")) return;
-    let pid = p.id; if (isNew) pid = must(await sb.from("portfolio_projects").insert(row).select("id").single()).id; else must(await sb.from("portfolio_projects").update(row).eq("id", pid));
+    let pid = p.id; if (isNew) { pid = must(await sb.from("portfolio_projects").insert(row).select("id").single()).id; p.id = pid; isNew = false; } else must(await sb.from("portfolio_projects").update(row).eq("id", pid));
     for (const file of $("#mf").files) media.push({ project_id: pid, kind: /\.glb$/i.test(file.name) ? "model" : "image", url: await uploadPublic(file, "portfolio"), alt: null });
     const keep = media.filter((m) => m.id).map((m) => m.id), gone = p.portfolio_media.filter((m) => !keep.includes(m.id)).map((m) => m.id);
     if (gone.length) must(await sb.from("portfolio_media").delete().in("id", gone));

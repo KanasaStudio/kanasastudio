@@ -31,6 +31,6 @@ export async function uploadPublic(file, folder = "misc") {
 
 export async function busy(btn, fn) {
   const t = btn.innerHTML; btn.disabled = true; btn.innerHTML = '<span class="spin"></span> Working…';
-  try { return await fn(); } catch (e) { toast(e.message || String(e)); } finally { btn.disabled = false; btn.innerHTML = t; }
+  try { return await fn(); } catch (e) { toast(/slug_key/.test(e.message || "") ? "That URL slug is already used by another item. Change the slug field, or open the existing item from the list." : (e.message || String(e))); } finally { btn.disabled = false; btn.innerHTML = t; }
 }
 export const must = ({ data, error }) => { if (error) throw error; return data; };

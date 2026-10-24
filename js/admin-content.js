@@ -127,7 +127,7 @@ async function pfEdit(el, id) {
 }
 
 /* ================= SITE EDITOR ================= */
-const SECTION_LAYOUTS = { hero: ["split", "stacked"], services: ["list"], portfolio: ["grid"], workflow: ["steps"], availability: ["banner"], faq: ["list"], contact: ["split"] };
+const SECTION_LAYOUTS = { hero: ["split", "stacked"], pricing: ["table"], services: ["list"], portfolio: ["grid"], workflow: ["steps"], availability: ["banner"], faq: ["list"], contact: ["split"] };
 export async function viewSite(el) {
   const pub = Object.fromEntries(must(await sb.from("site_settings").select("key,value")).map((r) => [r.key, r.value]));
   const dr = Object.fromEntries(must(await sb.from("site_settings_draft").select("key,value")).map((r) => [r.key, r.value]));
@@ -145,6 +145,7 @@ export async function viewSite(el) {
     ["Navigation & footer", `${list("nav", [["label", "Label"], ["href", "Link"]])}${input("footer.text", "Footer text")}`],
     ["Availability & contact", `${input("availability.status", "Commission status", { opts: [["open", "Open"], ["limited", "Limited slots"], ["closed", "Closed"]] })}${input("availability.note", "Note")}<div class="cols">${input("contact.email", "Email")}${input("contact.discord_url", "Discord invite URL")}${input("contact.whatsapp", "WhatsApp")}${input("contact.hours", "Hours")}${input("contact.location", "Location")}</div><h3 style="margin:1rem 0 .5rem;font-size:1rem">Social links</h3>${list("socials", [["label", "Label"], ["url", "URL"]])}`],
     ["About, workflow & FAQ", `${input("about.title", "About title")}${input("about.body", "About text", { area: 5 })}<h3 style="margin:1rem 0 .5rem;font-size:1rem">Workflow steps</h3>${list("workflow", [["title", "Title"], ["text", "Text"]])}<h3 style="margin:1rem 0 .5rem;font-size:1rem">FAQ</h3>${list("faq", [["q", "Question"], ["a", "Answer"]])}`],
+    ["Price list & illustrations", `${upload("pricing.price_image_url", "Price list poster")}${input("pricing.price_image_alt", "Price list alt text")}${upload("pricing.illustration_image_url", "Service illustration")}${input("pricing.illustration_alt", "Illustration alt text")}<h3 style="margin:1rem 0 .5rem;font-size:1rem">Price notes</h3>${list("pricing_notes", [["text", "Note"]])}<p class="muted" style="font-size:.8rem">The live price table comes from <em>Services & pricing</em>. The posters are reference images.</p>`],
     ["Orders & commission terms", `<div class="cols">${input("order.currency", "Currency (ISO code)")}${input("order.min_budget", "Minimum budget", { type: "number" })}${input("order.max_files", "Max files per order", { type: "number" })}${input("order.max_file_mb", "Max file size (MB)", { type: "number" })}</div>${input("order.terms", "Commission terms", { area: 4 })}${input("order.revision_info", "Revision information", { area: 3 })}${check("order.confirm_discord", "Offer Discord contact after ordering")}${check("order.confirm_whatsapp", "Offer WhatsApp contact after ordering")}<p class="muted" style="font-size:.8rem">Server-side limits (10 MB, image/PDF only) are enforced by the storage bucket regardless of these values. Notifications by email/Discord are not connected yet.</p>`],
     ["Maintenance & SEO", `${check("maintenance.enabled", "Maintenance mode (public pages show the message; /admin keeps working)")}${input("maintenance.message", "Maintenance message")}${input("seo.title", "Default page title")}${input("seo.description", "Default description", { area: 2 })}${upload("seo.og_image", "Share image (Open Graph)")}`],
   ];
@@ -159,7 +160,7 @@ export async function viewSite(el) {
     $$("[data-upload]", el).forEach((i) => i.onchange = async () => { try { setPath(draft, i.dataset.upload, await uploadPublic(i.files[0], "site")); mark(); draw(); } catch (e) { toast(e.message); } });
     $$("[data-mv]", el).forEach((b) => b.onclick = () => { const [k, i, d] = b.dataset.mv.split(":"), a = draft[k], j = +i + +d; if (j < 0 || j >= a.length) return; [a[+i], a[j]] = [a[j], a[+i]]; mark(); draw(); });
     $$("[data-del]", el).forEach((b) => b.onclick = () => { const [k, i] = b.dataset.del.split(":"); draft[k].splice(+i, 1); mark(); draw(); });
-    $$("[data-addrow]", el).forEach((b) => b.onclick = () => { const k = b.dataset.addrow; (draft[k] ||= []).push(k === "faq" ? { q: "", a: "" } : k === "workflow" ? { title: "", text: "" } : k === "nav" ? { label: "", href: "#/" } : { label: "", url: "https://" }); mark(); draw(); });
+    $$("[data-addrow]", el).forEach((b) => b.onclick = () => { const k = b.dataset.addrow; (draft[k] ||= []).push(k === "pricing_notes" ? { text: "" } : k === "faq" ? { q: "", a: "" } : k === "workflow" ? { title: "", text: "" } : k === "nav" ? { label: "", href: "#/" } : { label: "", url: "https://" }); mark(); draw(); });
     $("#sv").onclick = () => busy($("#sv"), saveDraft); $("#pb").onclick = () => busy($("#pb"), publish); $("#disc").onclick = discard; $("#hist").onclick = history;
   };
   const push = () => $("#pv")?.contentWindow?.postMessage({ type: "kns-preview", settings: draft }, location.origin);

@@ -150,3 +150,14 @@ details.faq p { color: var(--muted); margin: var(--space-3) 0 0; max-width: 46re
 .page-in { animation: page-in var(--dur-3) var(--ease); }
 @keyframes page-in { from { opacity: 0; transform: translateY(8px); } }
 [hidden] { display: none !important; }
+
+/* pricing */
+.prow { display: grid; grid-template-columns: 4rem minmax(0, 1fr) minmax(0, 1.4fr); gap: var(--space-5); padding: var(--space-5) 0; border-top: var(--border-w) solid var(--border); }
+.prow:last-of-type { border-bottom: var(--border-w) solid var(--border); }
+.tiers li { display: flex; justify-content: space-between; gap: var(--space-4); padding: .45rem 0; border-top: var(--border-w) solid var(--border); font-size: .9375rem; }
+.tiers li:first-child { border-top: 0; }
+.tiers small { display: block; font-size: .78rem; }
+.poster { display: block; border: var(--border-w) solid var(--border); background: var(--surface); overflow: hidden; }
+.poster img { width: 100%; height: auto; transition: transform var(--dur-3) var(--ease); }
+.poster:hover img { transform: scale(1.02); }
+@media (max-width: 900px) { .prow { grid-template-columns: 2.5rem 1fr; } .prow .tiers { grid-column: 1 / -1; } }

@@ -96,6 +96,11 @@ const SECTIONS = {
     return `<section class="section"><div class="container"><div class="section-head"><span class="eyebrow">Services</span><h2>What you can commission</h2><a class="btn ghost sm" href="#/services">All services</a></div>
       ${use.length ? `<div>${use.map(svcRow).join("")}</div>` : emptyBox("No services yet", "Services published from the admin panel appear here.")}</div></section>`;
   },
+  async pricing() {
+    const pr = set("pricing"), a = safeUrl(pr.price_image_url), b = safeUrl(pr.illustration_image_url);
+    return `<section class="section"><div class="container"><div class="section-head"><span class="eyebrow">Pricing</span><h2>Price list & service illustration</h2><a class="btn ghost sm" href="#/pricing">See all prices</a></div>
+      <div class="two">${a ? `<a class="poster reveal" href="#/pricing"><img src="${esc(a)}" alt="${esc(pr.price_image_alt || "Price list")}" loading="lazy" decoding="async"></a>` : ""}${b ? `<a class="poster reveal" href="#/pricing"><img src="${esc(b)}" alt="${esc(pr.illustration_alt || "Service illustration")}" loading="lazy" decoding="async"></a>` : ""}</div></div></section>`;
+  },
   async portfolio() {
     const all = await loadProjects(), f = all.filter((p) => p.is_featured), use = (f.length ? f : all).slice(0, 5);
     return `<section class="section"><div class="container"><div class="section-head"><span class="eyebrow">Portfolio</span><h2>Selected work</h2><a class="btn ghost sm" href="#/portfolio">View portfolio</a></div>
@@ -169,6 +174,23 @@ function wireService() {
   const upd = () => { const e = cart.estimate([line()], S.services); $("#est").textContent = e.quote ? "Quotation" : range(e.min, e.max, cur()); };
   f.addEventListener("input", upd); upd();
   f.addEventListener("submit", (ev) => { ev.preventDefault(); cart.add(line()); toast("Added to your order.", "ok"); openDrawer(); });
+}
+const tierPrice = (t) => t.price_min == null ? "Quotation" : range(t.price_min, t.price_max ?? t.price_min, cur());
+async function viewPricing() {
+  setMeta("Pricing", "Price list and service illustration.");
+  const all = await loadServices(), pr = set("pricing"), notes = set("pricing_notes", []);
+  const live = all.filter((x) => x.status !== "coming_soon"), soon = all.filter((x) => x.status === "coming_soon");
+  const a = safeUrl(pr.price_image_url), b = safeUrl(pr.illustration_image_url);
+  const fig = (u, alt) => u ? `<a class="poster" href="${esc(u)}" target="_blank" rel="noopener" title="Open full size"><img src="${esc(u)}" alt="${esc(alt)}" loading="lazy" decoding="async"></a>` : "";
+  return `<div class="container page"><div class="page-head"><span class="eyebrow">Pricing</span><h1 style="margin-top:1rem;font-size:var(--fs-h2)">Price list</h1><p>Prices in ${esc(cur())}. This table is the current price list; final price depends on complexity, details, revisions and deadline.</p></div>
+    ${live.length ? live.map((s, i) => `<div class="prow reveal"><span class="n mono muted">${String(i + 1).padStart(2, "0")}</span>
+      <div><h3><a href="#/services/${esc(s.slug)}" style="text-decoration:none">${esc(s.name)}</a></h3><p class="muted" style="margin:.4rem 0 0;font-size:.9375rem">${esc(s.summary || "")}</p></div>
+      <ul class="tiers">${s.service_tiers.filter((t) => t.is_active).map((t) => `<li><span>${esc(t.name)}${t.description ? `<small class="muted">${esc(t.description)}</small>` : ""}</span><span class="mono">${esc(tierPrice(t))}</span></li>`).join("") || `<li><span>${esc(svcPrice(s).text)}</span></li>`}</ul></div>`).join("") : emptyBox("No services published", "Check back soon.")}
+    ${notes.length ? `<div class="notice" style="margin-top:2rem"><strong>Price notes</strong><ul style="margin-top:.5rem">${notes.map((n) => `<li>• ${esc(n.text)}</li>`).join("")}</ul></div>` : ""}
+    ${soon.length ? `<h2 style="font-size:1.25rem;margin:3rem 0 1rem">Coming soon</h2><div>${soon.map((s) => `<div class="svc-row" style="grid-template-columns:1fr 2fr"><strong>${esc(s.name)} <span class="tag">Coming soon</span></strong><span class="muted">${esc(s.summary || "")}</span></div>`).join("")}</div>` : ""}
+    <p style="margin-top:2rem"><a class="btn" href="#/services">Choose a service</a></p>
+    <h2 style="font-size:1.25rem;margin:4rem 0 .5rem">Price list poster &amp; service illustration</h2><p class="muted" style="margin-bottom:1.5rem">Reference images (tap to open full size). If a price differs from the poster, the table above is the current one.</p>
+    <div class="two">${fig(a, pr.price_image_alt || "Price list")}${fig(b, pr.illustration_alt || "Service illustration")}</div></div>`;
 }
 async function viewPortfolio() {
   setMeta("Portfolio", "Selected 3D models, rigs and animation.");
@@ -352,6 +374,7 @@ async function route(keep) {
     if (m.enabled && parts[0] !== "track") html = viewMaintenance();
     else if (!parts.length) html = await viewHome();
     else if (parts[0] === "services") html = parts[1] ? await viewService(parts[1]) : await viewServices();
+    else if (parts[0] === "pricing") html = await viewPricing();
     else if (parts[0] === "portfolio") html = parts[1] ? await viewProject(parts[1]) : await viewPortfolio();
     else if (parts[0] === "about") html = viewAbout();
     else if (parts[0] === "order") html = await viewOrder();

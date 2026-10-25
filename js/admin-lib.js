@@ -19,7 +19,21 @@ export const num = (v) => (v === "" || v == null ? null : +v);
 export function getPath(o, p) { return p.split(".").reduce((a, k) => a?.[k], o); }
 export function setPath(o, p, v) { const ks = p.split("."); let c = o; ks.slice(0, -1).forEach((k) => { c = c[k] ??= {}; }); c[ks.at(-1)] = v; }
 
+/* Shrink big images in the browser before upload (keeps QR codes, GIFs, SVG and 3D models untouched). */
+async function shrink(file, folder) {
+  if (folder === "qris" || !/^image\/(png|jpeg|webp)$/.test(file.type)) return file;
+  try {
+    const bmp = await createImageBitmap(file), MAX = 1800, sc = Math.min(1, MAX / Math.max(bmp.width, bmp.height));
+    if (sc === 1 && file.size < 400 * 1024) return file;
+    const c = document.createElement("canvas"); c.width = Math.round(bmp.width * sc); c.height = Math.round(bmp.height * sc);
+    c.getContext("2d").drawImage(bmp, 0, 0, c.width, c.height);
+    const blob = await new Promise((r) => c.toBlob(r, "image/webp", 0.86));
+    if (!blob || blob.size >= file.size) return file;
+    return new File([blob], file.name.replace(/\.\w+$/, "") + ".webp", { type: "image/webp" });
+  } catch { return file; }
+}
 export async function uploadPublic(file, folder = "misc") {
+  file = await shrink(file, folder);
   if (!/^image\/(png|jpeg|webp|gif|svg\+xml)$/.test(file.type) && !/\.glb$/i.test(file.name)) throw new Error("Only PNG, JPG, WebP, GIF, SVG or GLB files.");
   if (file.size > 8 * 1048576) throw new Error("File is over 8 MB.");
   const name = file.name.replace(/[^A-Za-z0-9._-]/g, "_").slice(-60);

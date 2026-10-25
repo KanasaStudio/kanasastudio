@@ -66,6 +66,7 @@ const skeleton = (n = 3) => `<div class="container page" aria-busy="true">${Arra
 const fail = (e) => `<div class="container page"><div class="notice"><strong>Something went wrong.</strong><br>${esc(e?.message || "Could not load data.")} <button class="linkbtn" data-act="reload">Try again</button></div></div>`;
 
 /* ---------- helpers ---------- */
+const shareBtn = (kind, slug) => `<button type="button" class="linkbtn" style="float:right" data-act="copy" data-v="${esc(new URL(`share/${kind}/${slug}/`, location.href.split("#")[0]).href)}">Copy share link</button>`;
 function svcPrice(s) {
   if (s.custom_quote) return { text: "Quotation", sub: "custom" };
   const mins = [s.price_min, ...s.service_tiers.map((t) => t.price_min)].filter((v) => v != null).map(Number);
@@ -172,7 +173,7 @@ async function viewService(slug) {
   setMeta(s.name, s.summary);
   const list = (t, a) => a?.length ? `<h3 style="margin:2rem 0 .8rem;font-size:1.1rem">${t}</h3><ul class="dots">${a.map((x) => `<li>${esc(x)}</li>`).join("")}</ul>` : "";
   const canOrder = s.status === "available", tiers = s.service_tiers.filter((t) => t.is_active);
-  return `<div class="container page"><a class="eyebrow" href="#/services">← Services</a>
+  return `<div class="container page">${shareBtn("services", s.slug)}<a class="eyebrow" href="#/services">← Services</a>
     <div class="detail" style="margin-top:2rem"><div>
       <span class="eyebrow">${esc(s.category)}</span> ${statusPill(s)}<h1 style="font-size:var(--fs-h2);margin:1rem 0">${esc(s.name)}</h1>
       ${safeUrl(s.cover_url) ? `<img src="${esc(safeUrl(s.cover_url))}" alt="${esc(s.cover_alt || s.name)}" style="margin-bottom:1.5rem;border:1px solid var(--border)">` : ""}
@@ -233,7 +234,7 @@ async function viewProject(slug) {
   const models = p.portfolio_media.filter((m) => m.kind === "model"), imgs = p.portfolio_media.filter((m) => m.kind === "image");
   if (models.length) import("https://cdn.jsdelivr.net/npm/@google/model-viewer@3.5.0/dist/model-viewer.min.js").catch(() => {});
   const specs = Object.entries(p.specs || {});
-  return `<div class="container page"><a class="eyebrow" href="#/portfolio">← Portfolio</a>
+  return `<div class="container page">${shareBtn("portfolio", p.slug)}<a class="eyebrow" href="#/portfolio">← Portfolio</a>
     <div class="detail" style="margin-top:2rem"><div class="gallery">
       ${safeUrl(p.cover_url) ? `<img src="${esc(safeUrl(p.cover_url))}" alt="${esc(p.cover_alt || p.title)}">` : ""}
       ${models.map((m) => `<model-viewer src="${esc(safeUrl(m.url))}" alt="${esc(m.alt || p.title)}" camera-controls auto-rotate loading="lazy"></model-viewer>`).join("")}
@@ -414,7 +415,7 @@ async function viewProduct(slug) {
   setMeta(p.title, p.summary || "");
   const c = cats.find((x) => x.id === p.category_id), free = +p.price === 0, imgs = [p.cover_url, ...(p.gallery || [])].map(safeUrl).filter(Boolean);
   const meta = [["Category", c?.name], ["Version", p.version], ["Works with", p.compatibility], ["File", p.file_info], ["License", p.license_note]].filter((x) => x[1]);
-  return `<div class="container page"><a class="eyebrow" href="#/store">← Store</a>
+  return `<div class="container page">${shareBtn("store", p.slug)}<a class="eyebrow" href="#/store">← Store</a>
     <div class="two" style="margin-top:1.5rem"><div>${imgs.length ? `<img class="prod-main" id="pmain" src="${esc(imgs[0])}" alt="${esc(p.cover_alt || p.title)}">${imgs.length > 1 ? `<div class="prod-thumbs">${imgs.map((u, i) => `<button type="button" class="chip" data-pimg="${esc(u)}" aria-label="Image ${i + 1}"><img src="${esc(u)}" alt="" loading="lazy"></button>`).join("")}</div>` : ""}` : `<div class="prod-main"></div>`}</div>
       <div><span class="eyebrow">${esc(c?.name || "")}</span><h1 style="font-size:var(--fs-h2);margin:.6rem 0">${esc(p.title)}</h1>
         <div class="refbox" style="font-size:1.6rem;margin:.5rem 0">${esc(pPrice(p))}</div>${!free && usdOn() ? `<p class="muted" style="font-size:.8125rem">${esc(fxNote())}</p>` : ""}
@@ -553,7 +554,7 @@ document.addEventListener("click", async (ev) => {
   if (a === "next") { if (validateStep()) { o().step++; } return rerender(); }
   if (a === "back") { o().step = Math.max(1, o().step - 1); return rerender(); }
   if (a === "submit") return submitOrder();
-  if (a === "copy") { try { await navigator.clipboard.writeText(el.dataset.v); toast("Link copied.", "ok"); } catch { toast("Select the link and copy it manually."); } return; }
+  if (a === "copy") { try { await navigator.clipboard.writeText(el.dataset.v); toast("Copied.", "ok"); } catch { toast("Select the link and copy it manually."); } return; }
   if (a === "showbuy") { $("#buybox").innerHTML = buyForm(location.hash.split("/")[2].split("?")[0]); $("#bf-name").focus(); return; }
   if (a === "freedl") { const b = ev.target.closest("[data-act]"); b.disabled = true;
     const { data, error } = await sb.rpc("get_free_download", { p_slug: b.dataset.slug }); b.disabled = false;

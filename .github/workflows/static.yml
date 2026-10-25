@@ -6,6 +6,10 @@ on:
   push:
     branches: ["main"]
 
+  # Rebuild daily so share pages / sitemap pick up newly published items
+  schedule:
+    - cron: "17 3 * * *"
+
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
 
@@ -31,6 +35,12 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Build share pages and sitemap
+        run: node scripts/build-share-pages.mjs
       - name: Setup Pages
         uses: actions/configure-pages@v5
       - name: Upload artifact

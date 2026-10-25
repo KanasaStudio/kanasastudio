@@ -48,7 +48,8 @@ function renderChrome() {
   const b = set("brand"), nav = set("nav", []), f = set("footer"), soc = set("socials", []);
   $("#brand").innerHTML = `<img src="${esc(safeUrl(b.logo_url))}" alt="" width="30" height="30"><span>${esc(b.name || "Studio")}${b.partner ? ` <small>× ${esc(b.partner)}</small>` : ""}</span>`;
   $("#nav").innerHTML = (Array.isArray(nav) ? nav : []).map((n) => `<a href="${esc(safeUrl(n.href))}">${esc(n.label)}</a>`).join("");
-  $("#footer-links").innerHTML = soc.map((s) => `<li><a href="${esc(safeUrl(s.url))}" target="_blank" rel="noopener noreferrer">${esc(s.label)}</a></li>`).join("");
+  const lg = set("legal", {});
+  $("#footer-links").innerHTML = Object.entries(lg).map(([k, l]) => `<li><a href="#/legal/${esc(k)}">${esc(l.title)}</a></li>`).join("") + soc.map((s) => `<li><a href="${esc(safeUrl(s.url))}" target="_blank" rel="noopener noreferrer">${esc(s.label)}</a></li>`).join("");
   $("#footer-text").textContent = f.text || "";
   const ico = safeUrl(b.favicon_url); if (ico) $("#favicon").href = ico;
   applyTheme(set("theme"));
@@ -114,6 +115,17 @@ const SECTIONS = {
     const all = await loadProjects(), f = all.filter((p) => p.is_featured), use = (f.length ? f : all).slice(0, 5);
     return `<section class="section"><div class="container"><div class="section-head"><span class="eyebrow">Portfolio</span><h2>Selected work</h2><a class="btn ghost sm" href="#/portfolio">View portfolio</a></div>
       ${use.length ? `<div class="grid">${use.map(workCard).join("")}</div>` : emptyBox("Portfolio coming soon", "Final artwork is being prepared. Published projects will appear here.")}</div></section>`;
+  },
+  async store() {
+    const { cats, products } = await loadStore(), f = products.filter((p) => p.is_featured), use = (f.length ? f : products).slice(0, 6);
+    return `<section class="section"><div class="container"><div class="section-head"><span class="eyebrow">Store</span><h2>Digital products</h2><a class="btn ghost sm" href="#/store">Browse store</a></div>
+      ${use.length ? `<div class="pgrid">${use.map((p) => prodCard(p, cats)).join("")}</div>` : emptyBox("The store is opening soon", "Published products will appear here.")}</div></section>`;
+  },
+  testimonials() {
+    const t = (set("testimonials", []) || []).filter((x) => x.quote);
+    if (!t.length) return "";
+    return `<section class="section"><div class="container"><div class="section-head"><span class="eyebrow">Clients</span><h2>What clients say</h2><span></span></div>
+      <div class="quotes">${t.map((x) => `<figure class="quote reveal"><blockquote>${esc(x.quote)}</blockquote><figcaption><strong>${esc(x.name || "")}</strong>${x.role ? ` <span class="muted">${esc(x.role)}</span>` : ""}</figcaption></figure>`).join("")}</div></div></section>`;
   },
   workflow() {
     const w = set("workflow", []);
@@ -345,7 +357,7 @@ function payBlock(d) {
   if (p.state === "paid") return `<div class="summary" style="margin-top:1.5rem"><div class="eyebrow">Payment</div><div class="notice ok" style="margin:.8rem 0 0">Paid in full: ${esc(idr(p.paid))}. Thank you!</div>${hist}</div>`;
   const methods = d.methods || [], det = (m) => `<div class="paydet">${m.account_name ? `<div><span class="muted">Name</span> ${esc(m.account_name)}</div>` : ""}${m.account_number ? `<div><span class="muted">${m.kind === "bank" ? "Account no." : "Number"}</span> <strong class="mono">${esc(m.account_number)}</strong> <button type="button" class="linkbtn" data-act="copy" data-v="${esc(m.account_number)}">Copy</button></div>` : ""}${safeUrl(m.qris_image_url) ? `<a href="${esc(safeUrl(m.qris_image_url))}" target="_blank" rel="noopener"><img class="qris" src="${esc(safeUrl(m.qris_image_url))}" alt="QRIS code for ${esc(m.label)}" loading="lazy"></a><div class="muted" style="font-size:.8125rem">${esc(cfg.qris_notice || "Type the exact amount when paying.")}</div>` : ""}${m.instructions ? `<div class="muted" style="white-space:pre-wrap;font-size:.875rem">${esc(m.instructions)}</div>` : ""}</div>`;
   return `<form class="summary" id="payform" style="margin-top:1.5rem"><div class="eyebrow">Payment due</div>
-    <h3 style="margin:.5rem 0">${p.kind === "deposit" ? `Deposit (${esc(p.deposit_percent)}%)` : "Final payment"}</h3>
+    <h3 style="margin:.5rem 0">${p.kind === "deposit" ? (p.deposit_percent >= 100 ? "Payment" : `Deposit (${esc(p.deposit_percent)}%)`) : "Final payment"}</h3>
     <div class="refbox" style="font-size:1.6rem;margin:.5rem 0">${esc(idr(p.amount))}</div>
     <p class="muted" style="font-size:.8125rem">Pay this exact amount in IDR. Quoted total: ${esc(idr(p.total))}${p.paid > 0 ? ` · paid so far: ${esc(idr(p.paid))}` : ""}. ${esc(cfg.note || "")}</p>
     ${p.last_rejection ? `<div class="notice" role="alert"><strong>Your last proof was not accepted.</strong><br>${esc(p.last_rejection)}</div>` : ""}
@@ -354,6 +366,79 @@ function payBlock(d) {
       <div class="field"><label for="pf-note">Note (optional)</label><input class="input" id="pf-note" maxlength="500" placeholder="e.g. sender name"></div>
       <button class="btn" id="pf-btn">I have paid — send proof</button>`
       : `<div class="notice">The studio will send you payment details directly (Discord / WhatsApp / email).</div>`}${hist}</form>`;
+}
+
+
+/* ---------- digital store ---------- */
+const SF = (S.sf = { cat: "all", price: "all", q: "", sort: "featured" });
+async function loadStore(force) {
+  if (S.store && !force) return S.store;
+  const [c, p] = await Promise.all([
+    sb.from("product_categories").select("*").eq("is_active", true).order("sort_order"),
+    sb.from("products").select("*").eq("status", "published").order("sort_order")]);
+  if (c.error) throw c.error; if (p.error) throw p.error;
+  return (S.store = { cats: c.data, products: p.data });
+}
+const pPrice = (p) => +p.price > 0 ? M(p.price) : "Free";
+function prodCard(p, cats) {
+  const img = safeUrl(p.cover_url), c = cats.find((x) => x.id === p.category_id);
+  return `<a class="pcard reveal" href="#/store/${esc(p.slug)}"><div class="thumb">${img ? `<img src="${esc(img)}" alt="${esc(p.cover_alt || p.title)}" loading="lazy" decoding="async">` : ""}<span class="ptag ${+p.price > 0 ? "" : "free"}">${esc(pPrice(p))}</span></div>
+    <div class="meta"><strong>${esc(p.title)}</strong><span class="muted">${esc(c?.name || "")}${p.version ? ` · v${esc(p.version)}` : ""}</span>${p.summary ? `<p class="muted" style="margin:.2rem 0 0;font-size:.875rem">${esc(p.summary)}</p>` : ""}</div></a>`;
+}
+async function viewStore(q) {
+  setMeta("Store", "Digital products: plugins, scripts, models and animation poses.");
+  const { cats, products } = await loadStore();
+  if (q.cat && cats.some((c) => c.slug === q.cat)) SF.cat = q.cat;
+  if (q.price === "free" || q.price === "paid") SF.price = q.price;
+  const cnt = (id) => products.filter((p) => p.category_id === id).length;
+  return `<div class="container page"><div class="page-head"><span class="eyebrow">Store</span><h1 style="margin-top:1rem;font-size:var(--fs-h2)">Digital products</h1><p class="lead muted" style="max-width:40rem">Plugins, scripts, ready-made models and animation poses. Free items download instantly; paid items unlock after payment is confirmed.</p></div>
+    ${products.length ? `<div class="filters" role="group" aria-label="Category"><button class="chip" aria-pressed="${SF.cat === "all"}" data-scat="all">All</button>${cats.filter((c) => cnt(c.id)).map((c) => `<button class="chip" aria-pressed="${SF.cat === c.slug}" data-scat="${esc(c.slug)}">${esc(c.name)} <small>${cnt(c.id)}</small></button>`).join("")}</div>
+      <div class="filters" role="group" aria-label="Price and sort">${[["all", "All"], ["free", "Free"], ["paid", "Buy"]].map(([k, l]) => `<button class="chip" aria-pressed="${SF.price === k}" data-sprice="${k}">${l}</button>`).join("")}
+        <select class="input" id="st-sort" aria-label="Sort" style="max-width:11rem;margin-left:auto;padding-block:.5rem">${[["featured", "Featured"], ["new", "Newest"], ["low", "Price: low to high"], ["high", "Price: high to low"], ["az", "Name A–Z"]].map(([k, l]) => `<option value="${k}" ${SF.sort === k ? "selected" : ""}>${l}</option>`).join("")}</select>
+        <input class="input" id="st-q" type="search" placeholder="Search products" aria-label="Search products" value="${esc(SF.q)}" style="max-width:14rem;margin-left:0"></div>
+      <div class="pgrid" id="st-grid"></div>`
+      : emptyBox("The store is opening soon", "Published products will appear here.")}</div>`;
+}
+function drawStore() {
+  const g = $("#st-grid"); if (!g || !S.store) return;
+  const { cats, products } = S.store, q = SF.q.toLowerCase(), cat = cats.find((c) => c.slug === SF.cat);
+  let list = products.filter((p) => (SF.cat === "all" || p.category_id === cat?.id) && (SF.price === "all" || (SF.price === "free" ? +p.price === 0 : +p.price > 0)) && (!q || `${p.title} ${p.summary || ""} ${(p.tags || []).join(" ")}`.toLowerCase().includes(q)));
+  const by = { featured: (a, b) => (b.is_featured - a.is_featured) || (a.sort_order - b.sort_order), new: (a, b) => b.created_at.localeCompare(a.created_at), low: (a, b) => a.price - b.price, high: (a, b) => b.price - a.price, az: (a, b) => a.title.localeCompare(b.title) };
+  list = [...list].sort(by[SF.sort] || by.featured);
+  g.innerHTML = list.length ? list.map((p) => prodCard(p, cats)).join("") : `<div style="grid-column:1/-1">${emptyBox("No matches", "Try another category or clear the search.")}</div>`;
+  observe();
+}
+async function viewProduct(slug) {
+  const { cats, products } = await loadStore(), p = products.find((x) => x.slug === slug);
+  if (!p) return notFound();
+  setMeta(p.title, p.summary || "");
+  const c = cats.find((x) => x.id === p.category_id), free = +p.price === 0, imgs = [p.cover_url, ...(p.gallery || [])].map(safeUrl).filter(Boolean);
+  const meta = [["Category", c?.name], ["Version", p.version], ["Works with", p.compatibility], ["File", p.file_info], ["License", p.license_note]].filter((x) => x[1]);
+  return `<div class="container page"><a class="eyebrow" href="#/store">← Store</a>
+    <div class="two" style="margin-top:1.5rem"><div>${imgs.length ? `<img class="prod-main" id="pmain" src="${esc(imgs[0])}" alt="${esc(p.cover_alt || p.title)}">${imgs.length > 1 ? `<div class="prod-thumbs">${imgs.map((u, i) => `<button type="button" class="chip" data-pimg="${esc(u)}" aria-label="Image ${i + 1}"><img src="${esc(u)}" alt="" loading="lazy"></button>`).join("")}</div>` : ""}` : `<div class="prod-main"></div>`}</div>
+      <div><span class="eyebrow">${esc(c?.name || "")}</span><h1 style="font-size:var(--fs-h2);margin:.6rem 0">${esc(p.title)}</h1>
+        <div class="refbox" style="font-size:1.6rem;margin:.5rem 0">${esc(pPrice(p))}</div>${!free && usdOn() ? `<p class="muted" style="font-size:.8125rem">${esc(fxNote())}</p>` : ""}
+        <p class="lead" style="font-size:1rem">${esc(p.summary || "")}</p>
+        <div id="buybox">${free ? `<button class="btn" data-act="freedl" data-slug="${esc(p.slug)}">Download for free</button>` : `<button class="btn" data-act="showbuy">Buy now</button>`}</div>
+        ${meta.length ? `<dl class="specs" style="margin-top:1.5rem">${meta.map(([k, v]) => `<div><dt>${esc(k)}</dt><dd>${esc(v)}</dd></div>`).join("")}</dl>` : ""}
+        ${(p.tags || []).length ? `<p style="margin-top:1rem">${p.tags.map((t) => `<span class="tag">${esc(t)}</span>`).join(" ")}</p>` : ""}
+        ${p.description ? `<div style="margin-top:1.5rem">${paragraphs(p.description)}</div>` : ""}
+        <p class="muted" style="font-size:.8125rem;margin-top:1.5rem">By downloading or buying you agree to the <a href="#/legal/terms">Terms</a> and <a href="#/legal/refund">Refund Policy</a>.</p></div></div></div>`;
+}
+function buyForm(slug) {
+  const p = S.store.products.find((x) => x.slug === slug), cl = S.order.client;
+  return `<form id="buyform" data-id="${esc(p.id)}" class="summary"><div class="eyebrow">Checkout · ${esc(pPrice(p))}</div>
+    <div class="field"><label class="req" for="bf-name">Name</label><input class="input" id="bf-name" value="${esc(cl.name)}" required minlength="2" maxlength="80" autocomplete="name"></div>
+    <div class="field"><label class="req" for="bf-email">Email</label><input class="input" id="bf-email" type="email" value="${esc(cl.email)}" required maxlength="254" autocomplete="email"></div>
+    <div class="field"><label for="bf-discord">Discord / WhatsApp (optional)</label><input class="input" id="bf-discord" value="${esc(cl.discord)}" maxlength="80"></div>
+    <div class="err" id="bf-err" role="alert"></div>
+    <p class="muted" style="font-size:.8125rem">Next you will see payment details (bank, e-wallet or QRIS). Upload your proof; the download unlocks on your order page once the studio confirms the payment.</p>
+    <button class="btn" id="bf-btn">Continue to payment</button></form>`;
+}
+async function legalView(key) {
+  const l = set("legal", {})[key]; if (!l) return notFound();
+  setMeta(l.title);
+  return `<div class="container page" style="max-width:48rem"><span class="eyebrow">Legal</span><h1 style="font-size:var(--fs-h2);margin:.8rem 0 1.5rem">${esc(l.title)}</h1><div style="white-space:pre-wrap;line-height:1.7">${esc(l.body)}</div><p class="muted" style="margin-top:2rem;font-size:.8125rem">If something is unclear, contact the studio before ordering.</p></div>`;
 }
 
 /* ---------- track ---------- */
@@ -376,6 +461,8 @@ async function viewTrack(q) {
       <div class="field"><label for="tr-ref">Reference</label><input class="input" id="tr-ref" value="${esc(t.ref)}" placeholder="KNS-XXXXXXXX" required></div>
       <div class="field"><label for="tr-tok">Access token (from your tracking link)</label><input class="input" id="tr-tok" value="${esc(t.token)}" required></div>
       <button class="btn" ${t.loading ? "disabled" : ""}>${t.loading ? "Checking…" : "Track order"}</button></form>
+      <details class="acc" style="max-width:30rem;margin-top:1.5rem"><summary>Lost your tracking link?</summary><form id="recoverform" style="padding:0 1rem 1rem"><p class="muted" style="font-size:.875rem">Enter your order reference and the email you used. We will issue a new private link (the old one stops working).</p>
+        <div class="field"><label for="rc-ref">Reference</label><input class="input" id="rc-ref" placeholder="KNS-XXXXXXXX" required></div><div class="field"><label for="rc-email">Email</label><input class="input" id="rc-email" type="email" required></div><div class="err" id="rc-err" role="alert"></div><button class="btn sm">Get a new link</button></form></details>
       ${saved.length ? `<h3 style="margin:2.5rem 0 1rem;font-size:1.1rem">On this device</h3>${saved.map((s) => `<a class="svc-row" style="grid-template-columns:1fr auto" href="#/track?ref=${esc(s.reference)}&t=${esc(s.token)}"><span class="mono">${esc(s.reference)}</span><span class="muted">${esc(new Date(s.at).toLocaleDateString())}</span></a>`).join("")}` : ""}`}</div>`;
 }
 async function doTrack() {
@@ -418,6 +505,8 @@ async function route(keep) {
     else if (parts[0] === "services") html = parts[1] ? await viewService(parts[1]) : await viewServices();
     else if (parts[0] === "pricing") html = await viewPricing();
     else if (parts[0] === "portfolio") html = parts[1] ? await viewProject(parts[1]) : await viewPortfolio();
+    else if (parts[0] === "store") html = parts[1] ? await viewProduct(parts[1]) : await viewStore(q);
+    else if (parts[0] === "legal") html = await legalView(parts[1]);
     else if (parts[0] === "about") html = viewAbout();
     else if (parts[0] === "order") html = await viewOrder();
     else if (parts[0] === "track") html = await viewTrack(q);
@@ -428,6 +517,7 @@ async function route(keep) {
   if (!keep) { app.classList.remove("page-in"); void app.offsetWidth; app.classList.add("page-in"); scrollTo(0, 0); app.focus({ preventScroll: true }); }
   if (parts[0] === "services" && parts[1]) wireService();
   if (parts[0] === "portfolio" && !parts[1]) drawPortfolio();
+  if (parts[0] === "store" && !parts[1]) drawStore();
   if (parts[0] === "order" && S.services) wireOrder();
   observe();
 }
@@ -451,7 +541,10 @@ function observe() {
 
 /* ---------- events ---------- */
 document.addEventListener("click", async (ev) => {
-  const el = ev.target.closest("[data-act],[data-cat]"); if (!el) return;
+  const el = ev.target.closest("[data-act],[data-cat],[data-scat],[data-sprice],[data-pimg]"); if (!el) return;
+  if (el.dataset.pimg) { const m = $("#pmain"); if (m) m.src = el.dataset.pimg; return; }
+  if (el.dataset.scat || el.dataset.sprice) { if (el.dataset.scat) SF.cat = el.dataset.scat; else SF.price = el.dataset.sprice;
+    $$("[data-scat]").forEach((c) => c.setAttribute("aria-pressed", c.dataset.scat === SF.cat)); $$("[data-sprice]").forEach((c) => c.setAttribute("aria-pressed", c.dataset.sprice === SF.price)); return drawStore(); }
   if (el.dataset.cat) { S.filter.cat = el.dataset.cat; $$(".chip").forEach((c) => c.setAttribute("aria-pressed", c.dataset.cat === S.filter.cat)); return drawPortfolio(); }
   const a = el.dataset.act;
   if (a === "reload") return route();
@@ -461,6 +554,12 @@ document.addEventListener("click", async (ev) => {
   if (a === "back") { o().step = Math.max(1, o().step - 1); return rerender(); }
   if (a === "submit") return submitOrder();
   if (a === "copy") { try { await navigator.clipboard.writeText(el.dataset.v); toast("Link copied.", "ok"); } catch { toast("Select the link and copy it manually."); } return; }
+  if (a === "showbuy") { $("#buybox").innerHTML = buyForm(location.hash.split("/")[2].split("?")[0]); $("#bf-name").focus(); return; }
+  if (a === "freedl") { const b = ev.target.closest("[data-act]"); b.disabled = true;
+    const { data, error } = await sb.rpc("get_free_download", { p_slug: b.dataset.slug }); b.disabled = false;
+    if (error || !data) return toast(error?.message || "Download unavailable.");
+    const u = safeUrl(data); if (!u) return toast("Download unavailable.");
+    $("#buybox").innerHTML = `<a class="btn" href="${esc(u)}" target="_blank" rel="noopener">Open your download</a> <span class="muted" style="font-size:.8125rem">Thanks! Free items are provided as-is.</span>`; return; }
   if (a === "approve") { if (!confirm("Approve the work? The final payment will open next.")) return;
     const { data, error } = await sb.rpc("client_approve", { p_reference: S.track.ref, p_token: S.track.token });
     if (error || !data) return toast(error?.message || "Could not approve."); toast("Approved. Please complete the final payment.", "ok"); await doTrack(); return rerender(); }
@@ -469,6 +568,8 @@ document.addEventListener("click", async (ev) => {
 document.addEventListener("input", (ev) => {
   const t = ev.target;
   if (t.dataset.bind) { const [a, b] = t.dataset.bind.split("."); if (b) o()[a][b] = t.value; else o()[a] = t.value; }
+  if (t.id === "st-q") { SF.q = t.value; drawStore(); }
+  if (t.id === "st-sort") { SF.sort = t.value; drawStore(); }
   if (t.id === "pf-q") { S.filter.q = t.value; drawPortfolio(); }
   if (t.dataset.line) { cart.update(t.dataset.line, { brief: { ...(cart.all().find((x) => x.uid === t.dataset.line)?.brief || {}), [t.dataset.key]: t.value } }); }
 });
@@ -491,6 +592,25 @@ document.addEventListener("submit", async (ev) => {
       toast("Proof sent. The studio will verify it.", "ok"); await doTrack(); return rerender();
     } catch (e) { err.textContent = navigator.onLine ? e.message : "You appear to be offline. Try again when reconnected."; btn.disabled = false; btn.textContent = "I have paid — send proof"; }
     return;
+  }
+  if (ev.target.id === "buyform") {
+    ev.preventDefault(); const f = ev.target, btn = $("#bf-btn"), err = $("#bf-err"); err.textContent = ""; btn.disabled = true; btn.innerHTML = '<span class="spin"></span> Creating order…';
+    const client = { name: $("#bf-name").value, email: $("#bf-email").value, discord: $("#bf-discord").value }; Object.assign(S.order.client, client);
+    const { data, error } = await sb.rpc("create_product_order", { p: { idempotency_key: uid(), client, product_id: f.dataset.id, website: $("#hp")?.value || "" } });
+    if (error || !data?.access_token) { err.textContent = error?.message || "Could not create the order."; btn.disabled = false; btn.textContent = "Continue to payment"; return; }
+    const list = store.get("kns_orders", []); list.unshift({ reference: data.reference, token: data.access_token, at: Date.now() }); store.set("kns_orders", list.slice(0, 20));
+    S.track = { data: null, ref: "", token: "", error: "", loading: false };
+    location.hash = `#/track?ref=${encodeURIComponent(data.reference)}&t=${encodeURIComponent(data.access_token)}`; return;
+  }
+  if (ev.target.id === "recoverform") {
+    ev.preventDefault(); const btn = $("button", ev.target), err = $("#rc-err"); err.textContent = ""; btn.disabled = true;
+    const { data, error } = await sb.rpc("recover_order", { p_reference: $("#rc-ref").value, p_email: $("#rc-email").value }); btn.disabled = false;
+    if (error) { err.textContent = error.message; return; }
+    if (!data) { err.textContent = "No order matches that reference and email."; return; }
+    const list = store.get("kns_orders", []).filter((x) => x.reference !== data.reference); list.unshift({ reference: data.reference, token: data.access_token, at: Date.now() }); store.set("kns_orders", list.slice(0, 20));
+    toast("New tracking link issued. The old link no longer works.", "ok");
+    S.track = { data: null, ref: "", token: "", error: "", loading: false };
+    location.hash = `#/track?ref=${encodeURIComponent(data.reference)}&t=${encodeURIComponent(data.access_token)}`; return;
   }
   if (ev.target.id === "changesform") { ev.preventDefault(); const { data, error } = await sb.rpc("client_request_changes", { p_reference: S.track.ref, p_token: S.track.token, p_note: $("#ch-note").value });
     if (error || !data) return toast(error?.message || "Could not send."); toast("Change request sent.", "ok"); await doTrack(); return rerender(); }

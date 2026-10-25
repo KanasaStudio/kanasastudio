@@ -75,3 +75,21 @@ Fitur ini memakai **konfirmasi manual**. Untuk konfirmasi otomatis (QRIS dinamis
 5. Di halaman order, panel **Delivery** terbuka hanya setelah lunas penuh: tempel link unduhan (https) → klien melihatnya di halaman Track, status otomatis **Completed**.
 
 Dikunci di server: status *Completed* dan link pengiriman tidak bisa dibuat sebelum pembayaran terkonfirmasi penuh, dan link hanya ditampilkan ke klien setelah lunas.
+
+## Toko produk digital (Store)
+
+- Admin → **Store**: buat kategori (jadi tombol filter di situs), lalu produk. Harga **0 = Free**, selain itu = Buy (IDR).
+- Link unduhan (Drive/Mega/dll, https) disimpan privat. Produk **Free**: link muncul saat tombol diklik. Produk **Buy**: pembeli isi nama + email → bayar **100%** (bank/e-wallet/QRIS) → kamu konfirmasi di Payments → order otomatis *Completed* dan link unduhan muncul di halaman Track pembeli.
+- Produk tidak bisa dipublikasikan tanpa link unduhan.
+
+## Notifikasi Discord
+
+Admin → **Notifications**: tempel Discord webhook, isi alamat situs, Save, lalu *Send test message*. Kamu akan dapat pesan untuk order baru, bukti bayar baru, dan pesan klien.
+
+## Link pelacakan hilang
+
+Di halaman Track ada "Lost your tracking link?": klien isi referensi + email, sistem menerbitkan link baru (link lama mati). Dibatasi 10 percobaan salah / 10 menit.
+
+## Kebijakan & testimoni
+
+Site editor → panel **Legal pages** (Terms, Refund, Privacy; template awal, bukan nasihat hukum) dan **Testimonials** (hanya kutipan asli dengan izin). Lalu Publish.

@@ -1,9 +1,10 @@
 import { sb, esc, toast, fld, chk, busy, must } from "./admin-lib.js";
 import { $, $$, money, range, fmtDate, STATUS } from "./util.js";
-import { viewServices, viewPortfolio, viewSite, viewPayments } from "./admin-content.js?v=20261025b";
+import { viewStore, viewNotify } from "./admin-store.js?v=20261025c";
+import { viewServices, viewPortfolio, viewSite, viewPayments } from "./admin-content.js?v=20261025c";
 
 const root = $("#root");
-const NAV = [["dashboard", "Dashboard"], ["orders", "Orders"], ["payments", "Payments"], ["services", "Services & pricing"], ["portfolio", "Portfolio"], ["site", "Site editor"], ["audit", "Audit log"]];
+const NAV = [["dashboard", "Dashboard"], ["orders", "Orders"], ["payments", "Payments"], ["services", "Services & pricing"], ["portfolio", "Portfolio"], ["store", "Store"], ["notify", "Notifications"], ["site", "Site editor"], ["audit", "Audit log"]];
 let channel = null;
 
 /* ---------- auth ---------- */
@@ -54,6 +55,8 @@ async function route() {
     else if (k === "payments") await viewPayments(view());
     else if (k === "services") await viewServices(view(), id);
     else if (k === "portfolio") await viewPortfolio(view(), id);
+    else if (k === "store") await viewStore(view(), id);
+    else if (k === "notify") await viewNotify(view());
     else if (k === "site") await viewSite(view());
     else if (k === "audit") await viewAudit();
   } catch (e) { view().innerHTML = `<div class="notice" role="alert"><strong>Could not load.</strong> ${esc(e.message)}</div>`; }

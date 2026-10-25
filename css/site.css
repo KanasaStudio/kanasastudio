@@ -166,3 +166,10 @@ details.faq p { color: var(--muted); margin: var(--space-3) 0 0; max-width: 46re
 .seg { display: inline-flex; border: var(--border-w) solid var(--border); border-radius: var(--radius); overflow: hidden; }
 .seg button { background: transparent; border: 0; color: var(--muted); padding: .45rem .7rem; cursor: pointer; font: 500 .8125rem var(--font-mono); transition: background var(--dur-1), color var(--dur-1); }
 .seg button[aria-pressed="true"] { background: var(--text); color: var(--bg); }
+
+/* payments */
+.paymethod { display: flex; gap: .8rem; padding: .9rem; border: var(--border-w) solid var(--border); margin-bottom: .5rem; cursor: pointer; transition: border-color var(--dur-1), background var(--dur-1); }
+.paymethod:has(input:checked) { border-color: var(--accent); background: var(--surface-2); }
+.paymethod input { accent-color: var(--accent); margin-top: .3rem; }
+.paydet { display: grid; gap: .3rem; margin-top: .6rem; font-size: .9375rem; }
+.qris { width: min(15rem, 100%); background: #fff; padding: .5rem; margin-block: .4rem; }

@@ -1,9 +1,9 @@
 import { sb, esc, toast, fld, chk, busy, must } from "./admin-lib.js";
 import { $, $$, money, range, fmtDate, STATUS } from "./util.js";
-import { viewServices, viewPortfolio, viewSite } from "./admin-content.js?v=20261024c";
+import { viewServices, viewPortfolio, viewSite, viewPayments } from "./admin-content.js?v=20261025a";
 
 const root = $("#root");
-const NAV = [["dashboard", "Dashboard"], ["orders", "Orders"], ["services", "Services & pricing"], ["portfolio", "Portfolio"], ["site", "Site editor"], ["audit", "Audit log"]];
+const NAV = [["dashboard", "Dashboard"], ["orders", "Orders"], ["payments", "Payments"], ["services", "Services & pricing"], ["portfolio", "Portfolio"], ["site", "Site editor"], ["audit", "Audit log"]];
 let channel = null;
 
 /* ---------- auth ---------- */
@@ -51,6 +51,7 @@ async function route() {
   try {
     if (k === "dashboard") await viewDashboard();
     else if (k === "orders") id ? await viewOrder(id) : await viewOrders();
+    else if (k === "payments") await viewPayments(view());
     else if (k === "services") await viewServices(view(), id);
     else if (k === "portfolio") await viewPortfolio(view(), id);
     else if (k === "site") await viewSite(view());
@@ -67,7 +68,7 @@ async function viewDashboard() {
   view().innerHTML = `<div class="bar"><h1>Dashboard</h1><span class="pill">Commissions: ${esc(d.availability?.status || "?")}</span></div>
    <div class="stats"><div class="stat"><b>${n("new_request")}</b><span>New requests</span></div><div class="stat"><b>${n("under_review")}</b><span>Under review</span></div>
     <div class="stat"><b>${n("awaiting_client", "quotation_sent", "awaiting_payment")}</b><span>Waiting for response / payment</span></div><div class="stat"><b>${n("in_progress", "revision")}</b><span>In progress (incl. revision)</span></div>
-    <div class="stat"><b>${n("completed")}</b><span>Completed</span></div><div class="stat"><b>${money(d.booked_value, cur)}</b><span>Booked value*</span></div></div>
+    <div class="stat"><b>${n("completed")}</b><span>Completed</span></div><div class="stat"><b>${money(d.booked_value, cur)}</b><span>Booked value*</span></div><a class="stat" href="#/payments" style="text-decoration:none"><b>${d.pending_payments || 0}</b><span>Payments to verify</span></a></div>
    <p class="muted" style="font-size:.8rem">*Sum of <em>quoted total</em> for orders in Awaiting Payment, In Progress, Revision and Completed. Orders without a recorded quote count as 0.</p>
    <div class="cols" style="margin-top:2rem"><div class="panel"><h2>Recent activity</h2>${d.recent.length ? `<table class="t"><tbody>${d.recent.map((r) => `<tr class="click" data-ref="${esc(r.reference)}"><td class="mono">${esc(r.reference)}</td><td>${esc(r.client_name)}</td><td><span class="pill s-${esc(r.status)}">${esc(STATUS[r.status])}</span></td><td class="muted">${esc(fmtDate(r.created_at))}</td></tr>`).join("")}</tbody></table>` : '<div class="empty"><strong>No orders yet</strong>New requests appear here.</div>'}</div>
    <div class="panel"><h2>Shortcuts</h2><p><a class="btn sm" href="#/services/new">New service</a></p><p><a class="btn sm ghost" href="#/portfolio/new">New portfolio project</a></p><p><a class="btn sm ghost" href="#/site">Edit site / availability</a></p>
@@ -94,13 +95,19 @@ async function viewOrders() {
   $$("tr[data-id]").forEach((tr) => tr.onclick = () => (location.hash = "#/orders/" + tr.dataset.id));
 }
 async function viewOrder(id) {
-  const o = must(await sb.from("orders").select("*, order_items(*), order_attachments(*), order_status_history(*), order_messages(*)").eq("id", id).single());
+  const o = must(await sb.from("orders").select("*, order_items(*), order_attachments(*), order_status_history(*), order_messages(*), order_payments(*)").eq("id", id).single());
   const att = await Promise.all(o.order_attachments.map(async (a) => ({ ...a, url: (await sb.storage.from("order-attachments").createSignedUrl(a.storage_path, 300)).data?.signedUrl })));
+  const pays = await Promise.all(o.order_payments.sort((a, b) => a.created_at.localeCompare(b.created_at)).map(async (x) => ({ ...x, url: (await sb.storage.from("order-attachments").createSignedUrl(x.proof_path, 300)).data?.signedUrl })));
+  const paidSum = pays.filter((x) => x.status === "confirmed").reduce((n, x) => n + +x.amount, 0);
   const msgs = o.order_messages.sort((a, b) => a.id - b.id), hist = o.order_status_history.sort((a, b) => a.id - b.id);
   view().innerHTML = `<div class="bar"><div><a href="#/orders" class="muted">← Orders</a><h1 style="margin:.3rem 0 0">${esc(o.reference)}</h1></div><button class="btn ghost sm" id="dl">Download summary</button></div>
   <div class="cols"><div>
    <div class="panel"><h2>Status</h2><form id="stf"><span class="pill s-${esc(o.status)}">${esc(STATUS[o.status])}</span><div style="margin-top:1rem">${fld("status", "Change to", o.status, { opts: Object.entries(STATUS) })}${fld("note", "Note (saved in history)", "", { area: 2 })}${chk("vis", "Show this note to the client", false)}</div><button class="btn sm">Update status</button></form></div>
    <div class="panel"><h2>Quotation & deadline</h2><form id="qf">${fld("quoted_total", `Quoted total (${o.currency})`, o.quoted_total ?? "", { type: "number", attrs: 'min="0" step="1"' })}${fld("deadline", "Deadline", o.deadline ?? "", { type: "date" })}<p class="muted" style="font-size:.8rem">Estimate from items: ${o.estimated_min != null ? range(o.estimated_min, o.estimated_max, o.currency) : "none (custom quotation)"}. Changes are written to the audit log.</p><button class="btn sm">Save quotation</button></form></div>
+   <div class="panel" id="paypanel"><h2>Payments</h2><p class="muted" style="font-size:.85rem">Quoted: ${o.quoted_total != null ? money(o.quoted_total, o.currency) : "not set"} · Confirmed paid: ${money(paidSum, o.currency)}${o.quoted_total != null ? " · Remaining: " + money(Math.max(0, o.quoted_total - paidSum), o.currency) : ""}<br>To bill the final payment, set status to <b>Awaiting Payment</b> after the deposit is confirmed.</p>
+    ${pays.length ? pays.map((x) => `<div style="padding:.7rem 0;border-top:1px solid var(--border)"><strong>${x.kind === "deposit" ? "Deposit" : "Final payment"} ${money(x.amount, x.currency)}</strong> <span class="pill s-${x.status === "confirmed" ? "completed" : x.status === "rejected" ? "cancelled" : "new_request"}">${esc(x.status)}</span><div class="muted">${esc(x.method_label || "")} · ${esc(fmtDate(x.created_at))}${x.payer_note ? " · “" + esc(x.payer_note) + "”" : ""}</div>
+      ${x.url ? `<a href="${esc(x.url)}" target="_blank" rel="noopener">Open proof (link expires in 5 min)</a>` : ""}${x.review_note ? `<div class="muted">Review note: ${esc(x.review_note)}</div>` : ""}
+      ${x.status === "pending" ? `<form class="rv" data-id="${x.id}" data-kind="${x.kind}" style="margin-top:.6rem">${fld("note", "Note to client (required to reject)", "", { attrs: "maxlength=300" })}${fld("next", "If confirmed, set order status to", x.kind === "deposit" ? "in_progress" : "completed", { opts: [["", "(keep current)"], ...Object.entries(STATUS)] })}<p class="muted" style="font-size:.8rem">Only confirm after checking your real bank / e-wallet / QRIS transaction history.</p><button class="btn sm" value="1">Confirm payment</button> <button class="btn danger sm" value="0">Reject</button></form>` : ""}</div>`).join("") : '<p class="muted">No payments yet.</p>'}</div>
    <div class="panel"><h2>Client</h2><p><strong>${esc(o.client_name)}</strong><br><a href="mailto:${esc(o.client_email)}">${esc(o.client_email)}</a>${o.client_discord ? `<br>Discord: ${esc(o.client_discord)}` : ""}</p><p class="muted">Budget: ${o.budget != null ? money(o.budget, o.currency) : "—"} · Deadline requested: ${esc(o.deadline || "—")}</p></div></div>
   <div>
    <div class="panel"><h2>Items (price snapshot)</h2>${o.order_items.map((i) => `<div style="padding:.6rem 0;border-top:1px solid var(--border)"><strong>${esc(i.service_name)}</strong> ${esc(i.tier_name || "")} ×${i.quantity}<div class="muted">${i.unit_price_min != null ? range(i.unit_price_min, i.unit_price_max, o.currency) : "Quotation"}${i.addons.length ? " + " + i.addons.map((a) => esc(a.name)).join(", ") : ""}</div>
@@ -112,6 +119,7 @@ async function viewOrder(id) {
   const redo = () => viewOrder(id);
   $("#stf").onsubmit = (e) => { e.preventDefault(); const f = e.target; busy($("button", f), async () => { must(await sb.rpc("admin_set_order_status", { p_order: id, p_status: f.status.value, p_note: f.note.value, p_client_visible: f.vis.checked })); toast("Status updated.", "ok"); redo(); }); };
   $("#qf").onsubmit = (e) => { e.preventDefault(); const f = e.target; busy($("button", f), async () => { const v = f.quoted_total.value; const { error } = await sb.from("orders").update({ quoted_total: v === "" ? null : +v, quoted_at: v === "" ? null : new Date().toISOString(), deadline: f.deadline.value || null }).eq("id", id); if (error) throw error; toast("Saved.", "ok"); redo(); }); };
+  $$("form.rv").forEach((f) => f.onsubmit = (e) => { e.preventDefault(); const ok = e.submitter?.value === "1"; if (ok && !confirm("Confirm this payment? Make sure the money is really in your account.")) return; busy(e.submitter, async () => { must(await sb.rpc("admin_review_payment", { p_payment: f.dataset.id, p_approve: ok, p_note: f.note.value, p_next_status: ok && f.next.value ? f.next.value : null })); toast(ok ? "Payment confirmed." : "Payment rejected.", "ok"); redo(); }); });
   $("#mf").onsubmit = (e) => { e.preventDefault(); const f = e.target, u = sb.auth.getUser(); busy($("button", f), async () => { const { data: { user } } = await u; const { error } = await sb.from("order_messages").insert({ order_id: id, visibility: f.visibility.value, author_type: "admin", author_id: user.id, body: f.body.value.trim() }); if (error) throw error; redo(); }); };
   $("#dl").onclick = () => {
     const t = [`Order ${o.reference}`, `Status: ${STATUS[o.status]}`, `Created: ${o.created_at}`, `Client: ${o.client_name} <${o.client_email}> ${o.client_discord || ""}`, `Deadline: ${o.deadline || "-"}`, `Quoted: ${o.quoted_total ?? "-"} ${o.currency}`, "", "ITEMS", ...o.order_items.map((i) => `- ${i.service_name} ${i.tier_name || ""} x${i.quantity}  ${i.unit_price_min ?? "quote"}`), "", "BRIEF", o.brief].join("\n");

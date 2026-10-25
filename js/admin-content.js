@@ -1,6 +1,7 @@
 import { sb, esc, toast, fld, chk, lines, unlines, csv, num, getPath, setPath, uploadPublic, busy, must } from "./admin-lib.js";
-import { $, $$, money, slugify, uid, STATUS } from "./util.js";
+import { $, $$, money, slugify, uid, STATUS, fmtDate } from "./util.js";
 import { validateTheme, FONT_CHOICES } from "./theme.js";
+import { GUIDE } from "./payment-guide.js";
 
 const SVC_CATS = ["Model", "Animation", "Texturing", "Rigging", "UGC", "Other"];
 const swapOrder = async (table, a, b) => { await sb.from(table).update({ sort_order: b.sort_order }).eq("id", a.id); await sb.from(table).update({ sort_order: a.sort_order }).eq("id", b.id); };
@@ -146,6 +147,7 @@ export async function viewSite(el) {
     ["Availability & contact", `${input("availability.status", "Commission status", { opts: [["open", "Open"], ["limited", "Limited slots"], ["closed", "Closed"]] })}${input("availability.note", "Note")}<div class="cols">${input("contact.email", "Email")}${input("contact.discord_url", "Discord invite URL")}${input("contact.whatsapp", "WhatsApp")}${input("contact.hours", "Hours")}${input("contact.location", "Location")}</div><h3 style="margin:1rem 0 .5rem;font-size:1rem">Social links</h3>${list("socials", [["label", "Label"], ["url", "URL"]])}`],
     ["About, workflow & FAQ", `${input("about.title", "About title")}${input("about.body", "About text", { area: 5 })}<h3 style="margin:1rem 0 .5rem;font-size:1rem">Workflow steps</h3>${list("workflow", [["title", "Title"], ["text", "Text"]])}<h3 style="margin:1rem 0 .5rem;font-size:1rem">FAQ</h3>${list("faq", [["q", "Question"], ["a", "Answer"]])}`],
     ["Price list & illustrations", `${upload("pricing.price_image_url", "Price list poster")}${input("pricing.price_image_alt", "Price list alt text")}${upload("pricing.illustration_image_url", "Service illustration")}${input("pricing.illustration_alt", "Illustration alt text")}<h3 style="margin:1rem 0 .5rem;font-size:1rem">Price notes</h3>${list("pricing_notes", [["text", "Note"]])}<p class="muted" style="font-size:.8rem">The live price table comes from <em>Services & pricing</em>. The posters are reference images.</p>`],
+    ["Payments", `${input("payment.deposit_percent", "Deposit percentage (1-100)", { type: "number", attrs: 'min="1" max="100"' })}${input("payment.note", "Payment note shown to clients", { area: 3 })}${input("payment.qris_notice", "QRIS reminder")}<p class="muted" style="font-size:.8rem">Payment methods (bank, e-wallet, QRIS) are managed under <a href="#/payments">Payments</a>. The deposit amount is always calculated on the server from the quoted total.</p>`],
     ["Orders & commission terms", `<div class="cols">${input("order.currency", "Currency (ISO code)")}${input("order.min_budget", "Minimum budget", { type: "number" })}${input("order.max_files", "Max files per order", { type: "number" })}${input("order.max_file_mb", "Max file size (MB)", { type: "number" })}</div>${input("order.terms", "Commission terms", { area: 4 })}${input("order.revision_info", "Revision information", { area: 3 })}${check("order.fx_disabled", "Hide the IDR/USD toggle (no live USD conversion)")}${check("order.confirm_discord", "Offer Discord contact after ordering")}${check("order.confirm_whatsapp", "Offer WhatsApp contact after ordering")}<p class="muted" style="font-size:.8rem">Server-side limits (10 MB, image/PDF only) are enforced by the storage bucket regardless of these values. Notifications by email/Discord are not connected yet.</p>`],
     ["Maintenance & SEO", `${check("maintenance.enabled", "Maintenance mode (public pages show the message; /admin keeps working)")}${input("maintenance.message", "Maintenance message")}${input("seo.title", "Default page title")}${input("seo.description", "Default description", { area: 2 })}${upload("seo.og_image", "Share image (Open Graph)")}`],
   ];
@@ -175,6 +177,7 @@ export async function viewSite(el) {
     (draft.socials || []).forEach((s, i) => { if (!/^https?:\/\//.test(s.url || "")) e.push(`Social link ${i + 1} needs an http(s) URL.`); });
     (draft.faq || []).forEach((q, i) => { if (!q.q?.trim() || !q.a?.trim()) e.push(`FAQ ${i + 1} needs both question and answer.`); });
     if (draft.contact?.email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(draft.contact.email)) e.push("Contact email is invalid.");
+    const dp = draft.payment?.deposit_percent; if (!(dp >= 1 && dp <= 100)) e.push("Deposit percentage must be between 1 and 100.");
     if (!(draft.sections || []).some((s) => s.visible)) e.push("At least one homepage section must be visible.");
     return e;
   };
@@ -193,4 +196,38 @@ export async function viewSite(el) {
     $$("[data-rb]", el).forEach((b) => b.onclick = () => confirm(`Roll back to version #${b.dataset.rb}? This republishes immediately.`) && busy(b, async () => { must(await sb.rpc("rollback_site_settings", { p_version: +b.dataset.rb })); toast("Rolled back.", "ok"); viewSite(el); }));
   };
   draw();
+}
+
+
+/* ================= PAYMENTS ================= */
+export async function viewPayments(el) {
+  const [methods, pend] = await Promise.all([
+    sb.from("payment_methods").select("*").order("sort_order").then(must),
+    sb.from("order_payments").select("id,kind,amount,currency,method_label,created_at,order_id,orders(reference,client_name)").eq("status", "pending").order("created_at").then(must),
+  ]);
+  const mform = (m) => { const n = !m.id, k = m.id || "new"; return `<form class="panel mf" data-id="${esc(m.id || "")}" data-qr="${esc(m.qris_image_url || "")}"><h2>${n ? "Add payment method" : esc(m.label) + ` <span class="pill">${esc(m.kind)}</span>`}</h2>
+    <div class="cols">${fld("kind", "Type", m.kind || "bank", { opts: [["bank", "Bank transfer"], ["ewallet", "E-Wallet"], ["qris", "QRIS"]] })}${fld("label", "Label (e.g. BCA, DANA, QRIS Kanasa)", m.label || "", { req: 1, attrs: "required maxlength=60" })}
+    ${fld("account_name", "Account name (as shown in the app)", m.account_name || "")}${fld("account_number", "Account / phone number", m.account_number || "")}${fld("sort_order", "Order", m.sort_order ?? 0, { type: "number" })}</div>
+    <div class="field"><label>QRIS image (QRIS type only)</label>${m.qris_image_url ? `<img src="${esc(m.qris_image_url)}" alt="QRIS" style="width:9rem;background:#fff;padding:.4rem;margin-bottom:.4rem">` : ""}<input class="input" type="file" name="qr" accept="image/*"></div>
+    ${fld("instructions", "Instructions shown to the client", m.instructions || "", { area: 3 })}${chk("is_active", "Active (visible to clients who owe a payment)", m.id ? m.is_active : true)}
+    <button class="btn sm" value="save">${n ? "Add method" : "Save"}</button> ${n ? "" : '<button class="btn danger sm" value="del" type="submit">Delete</button>'}</form>`; };
+  el.innerHTML = `<div class="bar"><h1>Payments</h1></div>
+   <div class="panel"><h2>Payments waiting for verification (${pend.length})</h2>${pend.length ? `<table class="t"><tbody>${pend.map((x) => `<tr class="click" data-o="${x.order_id}"><td class="mono">${esc(x.orders?.reference)}</td><td>${esc(x.orders?.client_name)}</td><td>${x.kind === "deposit" ? "Deposit" : "Final"} ${money(x.amount, x.currency)}</td><td class="muted">${esc(x.method_label || "")}</td><td class="muted">${esc(fmtDate(x.created_at))}</td></tr>`).join("")}</tbody></table><p class="muted" style="font-size:.8rem">Click a row to open the order and verify the proof.</p>` : '<p class="muted">Nothing to verify.</p>'}</div>
+   <p class="muted">Deposit percentage and the payment note are set in <a href="#/site">Site editor → Payments</a> (then Publish).</p>
+   <h2 style="font-size:1.2rem;margin:2rem 0 1rem">Payment methods</h2>${methods.length ? "" : '<div class="notice">No methods yet. Clients cannot pay online until you add at least one. Add a bank account, e-wallet and/or QRIS below.</div>'}
+   ${methods.map(mform).join("")}${mform({})}
+   <h2 style="font-size:1.2rem;margin:2rem 0 1rem">Setup guide</h2>${GUIDE.map(([t, h], i) => `<details class="acc" ${i === 0 ? "open" : ""}><summary>${t}</summary><div>${h}</div></details>`).join("")}`;
+  $$("tr[data-o]", el).forEach((tr) => tr.onclick = () => (location.hash = "#/orders/" + tr.dataset.o));
+  $$("form.mf", el).forEach((f) => f.onsubmit = (e) => { e.preventDefault(); const btn = e.submitter, id = f.dataset.id;
+    if (btn.value === "del") { if (!confirm("Delete this payment method? Past payments keep their saved label.")) return; return busy(btn, async () => { must(await sb.from("payment_methods").delete().eq("id", id)); toast("Deleted.", "ok"); viewPayments(el); }); }
+    busy(btn, async () => {
+      const row = { kind: f.kind.value, label: f.label.value.trim(), account_name: f.account_name.value.trim() || null, account_number: f.account_number.value.trim() || null, instructions: f.instructions.value.trim() || null, is_active: f.is_active.checked, sort_order: +f.sort_order.value || 0, qris_image_url: f.dataset.qr || null };
+      if (!row.label) throw new Error("Label is required.");
+      if (row.kind !== "qris") row.qris_image_url = null;
+      const file = f.qr.files[0]; if (file) { if (row.kind !== "qris") throw new Error("QRIS image is only for the QRIS type."); row.qris_image_url = await uploadPublic(file, "qris"); }
+      if (row.kind === "qris" && !row.qris_image_url) throw new Error("Upload your QRIS image.");
+      if (row.kind !== "qris" && !row.account_number) throw new Error("Enter the account / phone number.");
+      if (id) must(await sb.from("payment_methods").update(row).eq("id", id)); else must(await sb.from("payment_methods").insert(row));
+      toast("Saved.", "ok"); viewPayments(el);
+    }); });
 }

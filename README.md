@@ -25,6 +25,10 @@ Deploy by pushing to GitHub and enabling **Pages** (branch `main`, root). `.noje
   Tracking uses reference + a secret token (stored hashed). Private files live in the `order-attachments` bucket.
 - Admin operations require `is_admin()` in the database; hiding routes is not relied upon.
 
+## Payments (manual-verified)
+Deposit (default 50%) then balance, via bank / e-wallet / QRIS. Clients upload proof on the Track page; admins verify in the order detail.
+Amounts are computed server-side. Setup guide: `docs/PAYMENTS.md` (also in Admin → Payments).
+
 ## Not implemented yet (deliberately)
-Online payment, email/Discord notifications, client accounts/portal, delivery-file workflow, bot challenge (e.g. Turnstile via Edge Function),
+Automatic payment gateway (Midtrans/Xendit), email/Discord notifications, client accounts/portal, delivery-file workflow, bot challenge (e.g. Turnstile via Edge Function),
 and per-route SEO crawlability (hash routing). None of these are claimed in the UI.

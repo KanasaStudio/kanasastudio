@@ -324,6 +324,29 @@ async function submitOrder() {
   } finally { o().busy = false; rerender(); }
 }
 
+
+/* ---------- payments (client side) ---------- */
+const KIND = { bank: "Bank transfer", ewallet: "E-wallet", qris: "QRIS" };
+function payBlock(d) {
+  const p = d.payment || {}, cfg = set("payment"), idr = (n) => money(n, d.currency);   // always exact IDR, never converted
+  const hist = (d.payments || []).length ? `<ul class="upload-list" style="margin-top:1rem">${d.payments.map((x) => `<li><span>${x.kind === "deposit" ? "Deposit" : "Final payment"} · ${esc(idr(x.amount))} · ${esc(x.method_label || "")}<br><span class="muted mono">${esc(fmtDate(x.created_at))}${x.review_note ? " · " + esc(x.review_note) : ""}</span></span><span class="tag ${x.status === "confirmed" ? "accent" : ""}">${esc({ pending: "Verifying", confirmed: "Confirmed", rejected: "Rejected" }[x.status] || x.status)}</span></li>`).join("")}</ul>` : "";
+  if (p.state === "none" && p.paid > 0 && p.total - p.paid > 0) return `<div class="summary" style="margin-top:1.5rem"><div class="eyebrow">Payment</div><p style="margin:.6rem 0 0">Deposit received. Remaining balance: <strong>${esc(idr(p.total - p.paid))}</strong>, due before final delivery. The studio will tell you when it is time to pay.</p>${hist}</div>`;
+  if (p.state === "none") return hist ? `<div class="summary" style="margin-top:1.5rem"><div class="eyebrow">Payment</div>${hist}</div>` : "";
+  if (p.state === "pending") return `<div class="summary" style="margin-top:1.5rem"><div class="eyebrow">Payment</div><div class="notice ok" style="margin:.8rem 0 0">Proof received. The studio is verifying your payment.</div>${hist}</div>`;
+  if (p.state === "paid") return `<div class="summary" style="margin-top:1.5rem"><div class="eyebrow">Payment</div><div class="notice ok" style="margin:.8rem 0 0">Paid in full: ${esc(idr(p.paid))}. Thank you!</div>${hist}</div>`;
+  const methods = d.methods || [], det = (m) => `<div class="paydet">${m.account_name ? `<div><span class="muted">Name</span> ${esc(m.account_name)}</div>` : ""}${m.account_number ? `<div><span class="muted">${m.kind === "bank" ? "Account no." : "Number"}</span> <strong class="mono">${esc(m.account_number)}</strong> <button type="button" class="linkbtn" data-act="copy" data-v="${esc(m.account_number)}">Copy</button></div>` : ""}${safeUrl(m.qris_image_url) ? `<a href="${esc(safeUrl(m.qris_image_url))}" target="_blank" rel="noopener"><img class="qris" src="${esc(safeUrl(m.qris_image_url))}" alt="QRIS code for ${esc(m.label)}" loading="lazy"></a><div class="muted" style="font-size:.8125rem">${esc(cfg.qris_notice || "Type the exact amount when paying.")}</div>` : ""}${m.instructions ? `<div class="muted" style="white-space:pre-wrap;font-size:.875rem">${esc(m.instructions)}</div>` : ""}</div>`;
+  return `<form class="summary" id="payform" style="margin-top:1.5rem"><div class="eyebrow">Payment due</div>
+    <h3 style="margin:.5rem 0">${p.kind === "deposit" ? `Deposit (${esc(p.deposit_percent)}%)` : "Final payment"}</h3>
+    <div class="refbox" style="font-size:1.6rem;margin:.5rem 0">${esc(idr(p.amount))}</div>
+    <p class="muted" style="font-size:.8125rem">Pay this exact amount in IDR. Quoted total: ${esc(idr(p.total))}${p.paid > 0 ? ` · paid so far: ${esc(idr(p.paid))}` : ""}. ${esc(cfg.note || "")}</p>
+    ${p.last_rejection ? `<div class="notice" role="alert"><strong>Your last proof was not accepted.</strong><br>${esc(p.last_rejection)}</div>` : ""}
+    ${methods.length ? `<div class="label" style="margin:1rem 0 .4rem">Choose a method</div>${methods.map((m, i) => `<label class="paymethod"><input type="radio" name="pm" value="${esc(m.id)}" ${i === 0 ? "checked" : ""}><span><strong>${esc(m.label)}</strong> <span class="tag">${esc(KIND[m.kind] || m.kind)}</span>${det(m)}</span></label>`).join("")}
+      <div class="field" style="margin-top:1rem"><label class="req" for="pf-proof">Payment proof (PNG, JPG, WebP, GIF or PDF, max 10 MB)</label><input class="input" id="pf-proof" type="file" accept="image/png,image/jpeg,image/webp,image/gif,application/pdf" required><div class="err" id="pf-err" role="alert"></div></div>
+      <div class="field"><label for="pf-note">Note (optional)</label><input class="input" id="pf-note" maxlength="500" placeholder="e.g. sender name"></div>
+      <button class="btn" id="pf-btn">I have paid — send proof</button>`
+      : `<div class="notice">The studio will send you payment details directly (Discord / WhatsApp / email).</div>`}${hist}</form>`;
+}
+
 /* ---------- track ---------- */
 async function viewTrack(q) {
   setMeta("Track order");
@@ -337,6 +360,7 @@ async function viewTrack(q) {
      <div><div class="summary">${d.items.map((i) => `<div class="line"><span>${esc(i.service_name)} <span class="muted">${esc(i.tier_name || "")} ×${i.quantity}</span></span></div>`).join("")}
        ${d.quoted_total != null ? `<div class="line total"><span>Quoted total</span><span>${M(d.quoted_total, d.currency)}</span></div>` : `<div class="line"><span class="muted">Estimate</span><span>${d.estimated_min != null ? R(d.estimated_min, d.estimated_max, d.currency) : "Awaiting quotation"}</span></div>`}
        ${d.deadline ? `<div class="line"><span class="muted">Deadline</span><span>${esc(d.deadline)}</span></div>` : ""}</div>
+      ${payBlock(d)}
       <h3 style="margin:2rem 0 1rem;font-size:1.1rem">Messages</h3>${d.messages.length ? d.messages.map((m) => `<div class="cart-line"><span class="eyebrow">${m.author_type === "admin" ? "Studio" : "You"} · ${esc(fmtDate(m.created_at))}</span><span style="white-space:pre-wrap">${esc(m.body)}</span></div>`).join("") : `<p class="muted">No messages yet.</p>`}
       <form id="replyform" style="margin-top:1rem"><div class="field"><label for="reply">Reply to the studio</label><textarea class="input" id="reply" maxlength="2000" required></textarea></div><button class="btn sm">Send</button> <button type="button" class="btn ghost sm" data-act="refresh">Refresh</button></form></div></div>`
    : `<form id="trackform" style="max-width:30rem">${t.error ? `<div class="notice" role="alert">${esc(t.error)}</div>` : ""}
@@ -439,6 +463,23 @@ document.addEventListener("input", (ev) => {
 document.addEventListener("change", (ev) => { const t = ev.target; if (t.dataset.act === "qty") { cart.update(t.dataset.id, { quantity: Math.max(1, Math.min(50, +t.value || 1)) }); } });
 document.addEventListener("submit", async (ev) => {
   if (ev.target.id === "trackform") { ev.preventDefault(); S.track.ref = $("#tr-ref").value.trim(); S.track.token = $("#tr-tok").value.trim(); S.track.loading = true; await doTrack(); return rerender(); }
+  if (ev.target.id === "payform") {
+    ev.preventDefault(); const f = ev.target, file = $("#pf-proof").files[0], err = $("#pf-err"), btn = $("#pf-btn"); err.textContent = "";
+    if (!file) { err.textContent = "Please choose your payment proof."; return; }
+    if (!ALLOWED.includes(file.type)) { err.textContent = "Only PNG, JPG, WebP, GIF or PDF files."; return; }
+    if (file.size > 10 * 1048576) { err.textContent = "File is over 10 MB."; return; }
+    btn.disabled = true; btn.innerHTML = '<span class="spin"></span> Sending…';
+    try {
+      const name = file.name.replace(/[^A-Za-z0-9._-]/g, "_").replace(/^\.+/, "").slice(-80) || "proof";
+      const path = `incoming/pay-${uid()}/${name}`;
+      const up = await sb.storage.from("order-attachments").upload(path, file, { contentType: file.type, upsert: false });
+      if (up.error) throw new Error("Upload failed: " + up.error.message);
+      const { error } = await sb.rpc("submit_payment", { p_reference: S.track.ref, p_token: S.track.token, p_method: f.pm.value, p_proof: path, p_note: $("#pf-note").value });
+      if (error) throw new Error(error.message);
+      toast("Proof sent. The studio will verify it.", "ok"); await doTrack(); return rerender();
+    } catch (e) { err.textContent = navigator.onLine ? e.message : "You appear to be offline. Try again when reconnected."; btn.disabled = false; btn.textContent = "I have paid — send proof"; }
+    return;
+  }
   if (ev.target.id === "replyform") { ev.preventDefault(); const { data, error } = await sb.rpc("client_reply", { p_reference: S.track.ref, p_token: S.track.token, p_body: $("#reply").value });
     if (error || !data) return toast(error?.message || "Could not send message."); toast("Message sent.", "ok"); await doTrack(); return rerender(); }
 });

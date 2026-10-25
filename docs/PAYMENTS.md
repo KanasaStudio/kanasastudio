@@ -65,3 +65,13 @@ Pembayaran di situs ini bersifat **konfirmasi manual**: klien membayar lewat apl
 ## 6. Nanti: pembayaran otomatis (payment gateway)
 Fitur ini memakai **konfirmasi manual**. Untuk konfirmasi otomatis (QRIS dinamis per order, virtual account, webhook) kamu butuh akun merchant di penyedia gateway (mis. Midtrans atau Xendit) dengan proses verifikasi usaha, ditambah fungsi server untuk menerima notifikasi pembayaran. Itu bisa ditambahkan nanti tanpa mengubah alur order yang sudah ada.
 
+
+## Alur kerja & pengiriman (urutan wajib)
+
+1. Klien bayar **DP 50%** → kamu konfirmasi → status *In Progress*.
+2. Worker selesai → kirim hasil/preview lewat pesan (Messages) → ubah status ke **Awaiting Client Approval**.
+3. Klien klik **Approve the work** di halaman Track (atau minta revisi → status *Revision*). Jika kalian sepakat lewat Discord, kamu bisa langsung set **Awaiting Payment**.
+4. Tagihan **pelunasan 50%** terbuka → klien upload bukti → kamu konfirmasi → status **Ready for Delivery**.
+5. Di halaman order, panel **Delivery** terbuka hanya setelah lunas penuh: tempel link unduhan (https) → klien melihatnya di halaman Track, status otomatis **Completed**.
+
+Dikunci di server: status *Completed* dan link pengiriman tidak bisa dibuat sebelum pembayaran terkonfirmasi penuh, dan link hanya ditampilkan ke klien setelah lunas.

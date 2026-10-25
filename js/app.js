@@ -327,10 +327,19 @@ async function submitOrder() {
 
 /* ---------- payments (client side) ---------- */
 const KIND = { bank: "Bank transfer", ewallet: "E-wallet", qris: "QRIS" };
+function flowBlock(d) {
+  if (d.status === "awaiting_approval") return `<div class="summary" style="margin-top:1.5rem"><div class="eyebrow">Your approval</div><h3 style="margin:.5rem 0">The work is ready for your review</h3>
+    <p class="muted" style="font-size:.9rem">Check the result the studio shared with you (see Messages). If you are happy, approve it — the final payment (remaining ${esc(M((d.payment?.total ?? d.quoted_total ?? 0) - (d.payment?.paid ?? 0), d.currency))}) opens next, and your files are delivered after that payment is confirmed.</p>
+    <button type="button" class="btn" data-act="approve">Approve the work</button>
+    <form id="changesform" style="margin-top:1.2rem"><div class="field"><label for="ch-note">Or ask for changes</label><textarea class="input" id="ch-note" maxlength="1000" placeholder="Describe what should be changed" required></textarea></div><button class="btn ghost sm">Request changes</button></form></div>`;
+  if (d.status === "ready_for_delivery") return `<div class="notice ok" style="margin-top:1.5rem">Final payment confirmed. The studio is preparing your files for delivery.</div>`;
+  if (d.delivery) return `<div class="summary" style="margin-top:1.5rem"><div class="eyebrow">Delivery</div><h3 style="margin:.5rem 0">Your files are ready</h3>${d.delivery.note ? `<p style="white-space:pre-wrap">${esc(d.delivery.note)}</p>` : ""}${safeUrl(d.delivery.url) ? `<a class="btn" href="${esc(safeUrl(d.delivery.url))}" target="_blank" rel="noopener">Download your files</a>` : ""}<p class="muted mono" style="margin-top:.8rem">${esc(fmtDate(d.delivery.delivered_at))}</p></div>`;
+  return "";
+}
 function payBlock(d) {
   const p = d.payment || {}, cfg = set("payment"), idr = (n) => money(n, d.currency);   // always exact IDR, never converted
   const hist = (d.payments || []).length ? `<ul class="upload-list" style="margin-top:1rem">${d.payments.map((x) => `<li><span>${x.kind === "deposit" ? "Deposit" : "Final payment"} · ${esc(idr(x.amount))} · ${esc(x.method_label || "")}<br><span class="muted mono">${esc(fmtDate(x.created_at))}${x.review_note ? " · " + esc(x.review_note) : ""}</span></span><span class="tag ${x.status === "confirmed" ? "accent" : ""}">${esc({ pending: "Verifying", confirmed: "Confirmed", rejected: "Rejected" }[x.status] || x.status)}</span></li>`).join("")}</ul>` : "";
-  if (p.state === "none" && p.paid > 0 && p.total - p.paid > 0) return `<div class="summary" style="margin-top:1.5rem"><div class="eyebrow">Payment</div><p style="margin:.6rem 0 0">Deposit received. Remaining balance: <strong>${esc(idr(p.total - p.paid))}</strong>, due before final delivery. The studio will tell you when it is time to pay.</p>${hist}</div>`;
+  if (p.state === "none" && p.paid > 0 && p.total - p.paid > 0) return `<div class="summary" style="margin-top:1.5rem"><div class="eyebrow">Payment</div><p style="margin:.6rem 0 0">Deposit received. Remaining balance: <strong>${esc(idr(p.total - p.paid))}</strong>. It opens after the work is finished and you have approved it; your files are delivered once it is paid.</p>${hist}</div>`;
   if (p.state === "none") return hist ? `<div class="summary" style="margin-top:1.5rem"><div class="eyebrow">Payment</div>${hist}</div>` : "";
   if (p.state === "pending") return `<div class="summary" style="margin-top:1.5rem"><div class="eyebrow">Payment</div><div class="notice ok" style="margin:.8rem 0 0">Proof received. The studio is verifying your payment.</div>${hist}</div>`;
   if (p.state === "paid") return `<div class="summary" style="margin-top:1.5rem"><div class="eyebrow">Payment</div><div class="notice ok" style="margin:.8rem 0 0">Paid in full: ${esc(idr(p.paid))}. Thank you!</div>${hist}</div>`;
@@ -360,7 +369,7 @@ async function viewTrack(q) {
      <div><div class="summary">${d.items.map((i) => `<div class="line"><span>${esc(i.service_name)} <span class="muted">${esc(i.tier_name || "")} ×${i.quantity}</span></span></div>`).join("")}
        ${d.quoted_total != null ? `<div class="line total"><span>Quoted total</span><span>${M(d.quoted_total, d.currency)}</span></div>` : `<div class="line"><span class="muted">Estimate</span><span>${d.estimated_min != null ? R(d.estimated_min, d.estimated_max, d.currency) : "Awaiting quotation"}</span></div>`}
        ${d.deadline ? `<div class="line"><span class="muted">Deadline</span><span>${esc(d.deadline)}</span></div>` : ""}</div>
-      ${payBlock(d)}
+      ${flowBlock(d)}${payBlock(d)}
       <h3 style="margin:2rem 0 1rem;font-size:1.1rem">Messages</h3>${d.messages.length ? d.messages.map((m) => `<div class="cart-line"><span class="eyebrow">${m.author_type === "admin" ? "Studio" : "You"} · ${esc(fmtDate(m.created_at))}</span><span style="white-space:pre-wrap">${esc(m.body)}</span></div>`).join("") : `<p class="muted">No messages yet.</p>`}
       <form id="replyform" style="margin-top:1rem"><div class="field"><label for="reply">Reply to the studio</label><textarea class="input" id="reply" maxlength="2000" required></textarea></div><button class="btn sm">Send</button> <button type="button" class="btn ghost sm" data-act="refresh">Refresh</button></form></div></div>`
    : `<form id="trackform" style="max-width:30rem">${t.error ? `<div class="notice" role="alert">${esc(t.error)}</div>` : ""}
@@ -452,6 +461,9 @@ document.addEventListener("click", async (ev) => {
   if (a === "back") { o().step = Math.max(1, o().step - 1); return rerender(); }
   if (a === "submit") return submitOrder();
   if (a === "copy") { try { await navigator.clipboard.writeText(el.dataset.v); toast("Link copied.", "ok"); } catch { toast("Select the link and copy it manually."); } return; }
+  if (a === "approve") { if (!confirm("Approve the work? The final payment will open next.")) return;
+    const { data, error } = await sb.rpc("client_approve", { p_reference: S.track.ref, p_token: S.track.token });
+    if (error || !data) return toast(error?.message || "Could not approve."); toast("Approved. Please complete the final payment.", "ok"); await doTrack(); return rerender(); }
   if (a === "refresh") { await doTrack(); return rerender(); }
 });
 document.addEventListener("input", (ev) => {
@@ -480,6 +492,8 @@ document.addEventListener("submit", async (ev) => {
     } catch (e) { err.textContent = navigator.onLine ? e.message : "You appear to be offline. Try again when reconnected."; btn.disabled = false; btn.textContent = "I have paid — send proof"; }
     return;
   }
+  if (ev.target.id === "changesform") { ev.preventDefault(); const { data, error } = await sb.rpc("client_request_changes", { p_reference: S.track.ref, p_token: S.track.token, p_note: $("#ch-note").value });
+    if (error || !data) return toast(error?.message || "Could not send."); toast("Change request sent.", "ok"); await doTrack(); return rerender(); }
   if (ev.target.id === "replyform") { ev.preventDefault(); const { data, error } = await sb.rpc("client_reply", { p_reference: S.track.ref, p_token: S.track.token, p_body: $("#reply").value });
     if (error || !data) return toast(error?.message || "Could not send message."); toast("Message sent.", "ok"); await doTrack(); return rerender(); }
 });

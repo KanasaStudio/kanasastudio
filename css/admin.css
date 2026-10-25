@@ -38,6 +38,7 @@ details.acc > summary { cursor: pointer; padding: .8rem 1rem; font-weight: 500; 
 details.acc > div { padding: 0 1rem 1rem; }
 .pill { font: 500 .7rem var(--font-mono); padding: .25rem .5rem; border: 1px solid var(--border); text-transform: uppercase; letter-spacing: .05em; }
 .pill.s-new_request { color: var(--accent); border-color: var(--accent); } .pill.s-completed { color: var(--ok); border-color: var(--ok); }
+.pill.s-awaiting_approval, .pill.s-ready_for_delivery { color: var(--warn); border-color: var(--warn); }
 .pill.s-published, .pill.s-available { color: var(--ok); border-color: var(--ok); }
 .pill.s-archived, .pill.s-cancelled { color: var(--muted); }
 .msg { padding: .7rem .9rem; border-left: 3px solid var(--border); margin-bottom: .5rem; background: var(--bg); white-space: pre-wrap; }

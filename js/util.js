@@ -33,5 +33,5 @@ export const slugify = (s) => String(s).toLowerCase().normalize("NFKD").replace(
 export const STATUS = {
   new_request: "New Request", under_review: "Under Review", awaiting_client: "Awaiting Client Response",
   quotation_sent: "Quotation Sent", awaiting_payment: "Awaiting Payment", in_progress: "In Progress",
-  revision: "Revision", completed: "Completed", cancelled: "Cancelled",
+  revision: "Revision", awaiting_approval: "Awaiting Client Approval", ready_for_delivery: "Ready for Delivery", completed: "Completed", cancelled: "Cancelled",
 };

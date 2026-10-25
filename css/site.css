@@ -195,3 +195,10 @@ dl.specs dt { color: var(--muted); min-width: 7rem; } dl.specs dd { margin: 0; }
 .quote blockquote { margin: 0 0 1rem; font-size: 1.05rem; line-height: 1.6; }
 details.acc { border: var(--border-w) solid var(--border); background: var(--surface); }
 details.acc > summary { cursor: pointer; padding: .8rem 1rem; font-weight: 500; }
+
+/* ---------- full-bleed hero (image or video from admin) ---------- */
+.hero-full { position: relative; width: 100%; height: calc(100svh - var(--header-h)); min-height: 22rem; background: var(--surface); overflow: hidden; }
+.hero-media { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; }
+.hero-empty { position: absolute; inset: 0; display: grid; place-items: center; color: var(--muted); padding: 2rem; text-align: center; }
+.sfx-btn { padding-inline: .6rem; display: inline-grid; place-items: center; }
+.sfx-btn[hidden] { display: none; }

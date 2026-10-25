@@ -26,6 +26,7 @@ export function toast(msg, kind = "") {
   if (!host) { host = document.createElement("div"); host.className = "toast-host"; host.setAttribute("role", "status"); document.body.append(host); }
   const t = document.createElement("div"); t.className = "toast " + kind; t.textContent = msg; host.append(t);
   setTimeout(() => t.remove(), 5000);
+  document.dispatchEvent(new CustomEvent("kns-toast", { detail: kind || "err" }));
 }
 export const uid = () => (crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2) + Date.now().toString(36));
 export const slugify = (s) => String(s).toLowerCase().normalize("NFKD").replace(/[^\w\s-]/g, "").trim().replace(/[\s_]+/g, "-").replace(/-+/g, "-") || "item";

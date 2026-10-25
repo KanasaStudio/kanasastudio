@@ -3,6 +3,7 @@ import { esc, safeUrl, $, $$, money, range, fmtDate, paragraphs, store, toast, u
 import { applyTheme } from "./theme.js";
 import { getRate } from "./fx.js";
 import * as cart from "./cart.js";
+import { initSfx, play as sfx } from "./sfx.js";
 
 const S = {
   settings: {}, services: null, projects: null,
@@ -53,6 +54,7 @@ function renderChrome() {
   $("#footer-text").textContent = f.text || "";
   const ico = safeUrl(b.favicon_url); if (ico) $("#favicon").href = ico;
   applyTheme(set("theme"));
+  initSfx(set("sfx"));
 }
 function setMeta(title, desc) {
   const seo = set("seo"), name = set("brand").name || "";
@@ -94,13 +96,16 @@ const emptyBox = (t, d) => `<div class="empty"><strong>${esc(t)}</strong>${esc(d
 
 /* ---------- home sections ---------- */
 const SECTIONS = {
-  hero(l) {
-    const h = set("hero"), img = safeUrl(h.artwork_url);
-    return `<section class="hero"><div class="container hero-grid" ${l === "stacked" ? 'style="grid-template-columns:1fr"' : ""}>
-      <div><span class="eyebrow">${esc(set("brand").name || "")} × ${esc(set("brand").partner || "")}</span>
-      <h1 style="margin-top:1rem">${esc(h.headline)}</h1><p class="lead">${esc(h.description)}</p>
-      <div class="hero-actions">${h.cta_primary ? `<a class="btn" href="${esc(safeUrl(h.cta_primary.href))}">${esc(h.cta_primary.label)}</a>` : ""}${h.cta_secondary ? `<a class="btn ghost" href="${esc(safeUrl(h.cta_secondary.href))}">${esc(h.cta_secondary.label)}</a>` : ""}</div></div>
-      <figure class="hero-art" style="margin:0">${img ? `<img src="${esc(img)}" alt="${esc(h.artwork_alt || "")}" fetchpriority="high">` : ""}</figure></div></section>`;
+  hero() {
+    const h = set("hero"), url = safeUrl(h.media_url || h.artwork_url), poster = safeUrl(h.poster_url), alt = h.media_alt || h.artwork_alt || "";
+    const title = `<h1 class="sr-only">${esc(h.headline || set("brand").name || "")}</h1>`;
+    if (!url) return `<section class="hero-full" aria-label="Intro">${title}<div class="hero-empty">Add a hero image or video in Admin → Site editor → Hero.</div></section>`;
+    const focus = ["center", "top", "bottom", "left", "right"].includes(h.focus) ? h.focus : "center";
+    const isVideo = h.media_type === "video" || (!h.media_type && /\.(mp4|webm)(\?|$)/i.test(url)), still = matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const media = isVideo
+      ? `<video class="hero-media" style="object-position:${focus}" src="${esc(url)}" ${poster ? `poster="${esc(poster)}"` : ""} ${still ? "" : "autoplay"} muted loop playsinline disablepictureinpicture preload="auto" aria-label="${esc(alt)}"></video>`
+      : `<img class="hero-media" style="object-position:${focus}" src="${esc(url)}" alt="${esc(alt)}" fetchpriority="high" decoding="async">`;
+    return `<section class="hero-full" aria-label="Intro">${title}${media}</section>`;
   },
   async services(l) {
     const all = await loadServices(), list = all.filter((s) => s.is_featured).slice(0, 6), use = list.length ? list : all.slice(0, 6);
@@ -626,7 +631,8 @@ $("#menu-btn").addEventListener("click", () => { const n = $("#nav"); const on =
 document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeDrawer(); });
 window.addEventListener("hashchange", () => route());
 window.addEventListener("online", () => toast("Back online.", "ok"));
-cart.onChange(() => { if (S.services) drawCart(); else { $("#cart-count").textContent = cart.count(); $("#cart-count").hidden = !cart.count(); } });
+let _cc = cart.count();
+cart.onChange(() => { const n = cart.count(); if (n > _cc) sfx("add"); _cc = n; if (S.services) drawCart(); else { $("#cart-count").textContent = cart.count(); $("#cart-count").hidden = !cart.count(); } });
 
 // live preview from the admin editor (same-origin iframe only)
 if (new URLSearchParams(location.search).has("preview")) {

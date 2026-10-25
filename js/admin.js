@@ -1,7 +1,7 @@
 import { sb, esc, toast, fld, chk, busy, must } from "./admin-lib.js";
 import { $, $$, money, range, fmtDate, STATUS } from "./util.js";
-import { viewStore, viewNotify } from "./admin-store.js?v=20261025d";
-import { viewServices, viewPortfolio, viewSite, viewPayments } from "./admin-content.js?v=20261025d";
+import { viewStore, viewNotify } from "./admin-store.js?v=20261025e";
+import { viewServices, viewPortfolio, viewSite, viewPayments } from "./admin-content.js?v=20261025e";
 
 const root = $("#root");
 const NAV = [["dashboard", "Dashboard"], ["orders", "Orders"], ["payments", "Payments"], ["services", "Services & pricing"], ["portfolio", "Portfolio"], ["store", "Store"], ["notify", "Notifications"], ["site", "Site editor"], ["audit", "Audit log"]];

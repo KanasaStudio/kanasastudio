@@ -34,11 +34,13 @@ async function shrink(file, folder) {
 }
 export async function uploadPublic(file, folder = "misc") {
   file = await shrink(file, folder);
-  if (!/^image\/(png|jpeg|webp|gif|svg\+xml)$/.test(file.type) && !/\.glb$/i.test(file.name)) throw new Error("Only PNG, JPG, WebP, GIF, SVG or GLB files.");
-  if (file.size > 8 * 1048576) throw new Error("File is over 8 MB.");
+  const vid = /^video\/(mp4|webm)$/.test(file.type), aud = /^audio\//.test(file.type);
+  if (!/^image\/(png|jpeg|webp|gif|svg\+xml)$/.test(file.type) && !/\.glb$/i.test(file.name) && !vid && !aud) throw new Error("Allowed: PNG, JPG, WebP, GIF, SVG, GLB, MP4/WebM video or MP3/OGG/WAV audio.");
+  if (aud && file.size > 1048576) throw new Error("Sound effects must be under 1 MB (they should be very short).");
+  if (file.size > (vid ? 40 : 8) * 1048576) throw new Error(vid ? "Video is over 40 MB. Compress it (e.g. 1080p, ~5 Mbps, no audio)." : "File is over 8 MB.");
   const name = file.name.replace(/[^A-Za-z0-9._-]/g, "_").slice(-60);
   const path = `${folder}/${uid()}-${name}`;
-  const { error } = await sb.storage.from("public-media").upload(path, file, { contentType: file.type || "model/gltf-binary", upsert: false });
+  const { error } = await sb.storage.from("public-media").upload(path, file, { contentType: file.type || "model/gltf-binary", upsert: false, cacheControl: "31536000" });
   if (error) throw error;
   return sb.storage.from("public-media").getPublicUrl(path).data.publicUrl;
 }

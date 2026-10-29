@@ -129,7 +129,7 @@ async function pfEdit(el, id) {
 }
 
 /* ================= SITE EDITOR ================= */
-const SECTION_LAYOUTS = { hero: ["split", "stacked"], pricing: ["table"], services: ["list"], portfolio: ["grid"], store: ["grid"], testimonials: ["grid"], workflow: ["steps"], availability: ["banner"], faq: ["list"], contact: ["split"] };
+const SECTION_LAYOUTS = { hero: ["split", "stacked"], pricing: ["table"], services: ["list"], portfolio: ["grid"], store: ["grid"], resources: ["grid"], testimonials: ["grid"], workflow: ["steps"], availability: ["banner"], faq: ["list"], contact: ["split"] };
 export async function viewSite(el) {
   const pub = Object.fromEntries(must(await sb.from("site_settings").select("key,value")).map((r) => [r.key, r.value]));
   const dr = Object.fromEntries(must(await sb.from("site_settings_draft").select("key,value")).map((r) => [r.key, r.value]));

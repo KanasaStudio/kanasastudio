@@ -127,6 +127,11 @@ const SECTIONS = {
     return `<section class="section"><div class="container"><div class="section-head"><span class="eyebrow">Store</span><h2>Digital products</h2><a class="btn ghost sm" href="#/store">Browse store</a></div>
       ${use.length ? `<div class="pgrid">${use.map((p) => prodCard(p, cats)).join("")}</div>` : emptyBox("The store is opening soon", "Published products will appear here.")}</div></section>`;
   },
+  async resources() {
+    const { cats, items } = await loadRes(), f = items.filter((r) => r.is_featured), use = (f.length ? f : items).slice(0, 8);
+    if (!use.length) return "";
+    return `<section class="section"><div class="container"><div class="section-head"><span class="eyebrow">Tools</span><h2>Handy creator tools</h2><a class="btn ghost sm" href="#/resources">All tools</a></div><div class="rgrid">${use.map((r) => resCard(r, cats)).join("")}</div></div></section>`;
+  },
   testimonials() {
     const t = (set("testimonials", []) || []).filter((x) => x.quote);
     if (!t.length) return "";
@@ -447,6 +452,48 @@ async function legalView(key) {
   return `<div class="container page" style="max-width:48rem"><span class="eyebrow">Legal</span><h1 style="font-size:var(--fs-h2);margin:.8rem 0 1.5rem">${esc(l.title)}</h1><div style="white-space:pre-wrap;line-height:1.7">${esc(l.body)}</div><p class="muted" style="margin-top:2rem;font-size:.8125rem">If something is unclear, contact the studio before ordering.</p></div>`;
 }
 
+
+/* ---------- creator tools directory ---------- */
+const RF = (S.rf = { cat: "all", price: "all", q: "" });
+async function loadRes(force) {
+  if (S.res && !force) return S.res;
+  const [c, r] = await Promise.all([
+    sb.from("resource_categories").select("*").eq("is_active", true).order("sort_order"),
+    sb.from("resources").select("*").eq("status", "published").order("sort_order")]);
+  if (c.error) throw c.error; if (r.error) throw r.error;
+  return (S.res = { cats: c.data, items: r.data });
+}
+const PRICE_LABEL = { free: "Free", freemium: "Free + paid", paid: "Paid" };
+const hostOf = (u) => { try { return new URL(u).hostname.replace(/^www\./, ""); } catch { return ""; } };
+function resCard(r, cats) {
+  const url = safeUrl(r.url); if (!url) return "";
+  const c = cats.find((x) => x.id === r.category_id), icon = safeUrl(r.icon_url) || `https://www.google.com/s2/favicons?domain=${encodeURIComponent(hostOf(url))}&sz=64`;
+  return `<a class="rcard reveal" href="${esc(url)}" target="_blank" rel="noopener noreferrer nofollow">
+    <span class="ricon"><span aria-hidden="true">${esc((r.title || "?")[0].toUpperCase())}</span><img src="${esc(icon)}" alt="" width="32" height="32" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()"></span>
+    <span class="rbody"><strong>${esc(r.title)} <span class="rarrow" aria-hidden="true">↗</span></strong><span class="muted rdesc">${esc(r.description || "")}</span>
+      <span class="rmeta"><span class="tag ${r.pricing === "free" ? "accent" : ""}">${esc(PRICE_LABEL[r.pricing] || r.pricing)}</span>${c ? `<span class="tag">${esc(c.name)}</span>` : ""}<span class="muted mono" style="font-size:.75rem">${esc(hostOf(url))}</span></span></span></a>`;
+}
+async function viewResources(q) {
+  setMeta("Creator tools", "A curated list of tools for creators: editing, design, 3D, audio, Roblox dev and more.");
+  const { cats, items } = await loadRes();
+  if (q.cat && cats.some((c) => c.slug === q.cat)) RF.cat = q.cat;
+  const cnt = (id) => items.filter((p) => p.category_id === id).length;
+  return `<div class="container page"><div class="page-head"><span class="eyebrow">Tools</span><h1 style="margin-top:1rem;font-size:var(--fs-h2)">Creator tools</h1><p class="lead muted" style="max-width:40rem">Not sure where to find a good editor, asset library or utility? Start here. Hand-picked links that open on their own websites.</p></div>
+    ${items.length ? `<div class="filters" role="group" aria-label="Category"><button class="chip" aria-pressed="${RF.cat === "all"}" data-rcat="all">All <small>${items.length}</small></button>${cats.filter((c) => cnt(c.id)).map((c) => `<button class="chip" aria-pressed="${RF.cat === c.slug}" data-rcat="${esc(c.slug)}">${esc(c.name)} <small>${cnt(c.id)}</small></button>`).join("")}</div>
+      <div class="filters" role="group" aria-label="Price">${[["all", "Any price"], ["free", "Free"], ["freemium", "Free + paid"], ["paid", "Paid"]].map(([k, l]) => `<button class="chip" aria-pressed="${RF.price === k}" data-rprice="${k}">${l}</button>`).join("")}
+        <input class="input" id="rs-q" type="search" placeholder="Search tools, e.g. video, font, sfx" aria-label="Search tools" value="${esc(RF.q)}"></div>
+      <div class="rgrid" id="rs-grid"></div>
+      <p class="muted" style="font-size:.8125rem;margin-top:2rem">Links lead to third-party websites. Features, prices and licences change, so check each site before you rely on it.</p>`
+      : emptyBox("Tools coming soon", "Published links will appear here.")}</div>`;
+}
+function drawResources() {
+  const g = $("#rs-grid"); if (!g || !S.res) return;
+  const { cats, items } = S.res, q = RF.q.toLowerCase(), cat = cats.find((c) => c.slug === RF.cat);
+  const list = items.filter((r) => (RF.cat === "all" || r.category_id === cat?.id) && (RF.price === "all" || r.pricing === RF.price) && (!q || `${r.title} ${r.description || ""} ${(r.tags || []).join(" ")}`.toLowerCase().includes(q)));
+  g.innerHTML = list.length ? list.map((r) => resCard(r, cats)).join("") : `<div style="grid-column:1/-1">${emptyBox("No matches", "Try another category or clear the search.")}</div>`;
+  observe();
+}
+
 /* ---------- track ---------- */
 async function viewTrack(q) {
   setMeta("Track order");
@@ -512,6 +559,7 @@ async function route(keep) {
     else if (parts[0] === "pricing") html = await viewPricing();
     else if (parts[0] === "portfolio") html = parts[1] ? await viewProject(parts[1]) : await viewPortfolio();
     else if (parts[0] === "store") html = parts[1] ? await viewProduct(parts[1]) : await viewStore(q);
+    else if (parts[0] === "resources") html = await viewResources(q);
     else if (parts[0] === "legal") html = await legalView(parts[1]);
     else if (parts[0] === "about") html = viewAbout();
     else if (parts[0] === "order") html = await viewOrder();
@@ -524,6 +572,7 @@ async function route(keep) {
   if (parts[0] === "services" && parts[1]) wireService();
   if (parts[0] === "portfolio" && !parts[1]) drawPortfolio();
   if (parts[0] === "store" && !parts[1]) drawStore();
+  if (parts[0] === "resources") drawResources();
   if (parts[0] === "order" && S.services) wireOrder();
   observe();
 }
@@ -547,7 +596,9 @@ function observe() {
 
 /* ---------- events ---------- */
 document.addEventListener("click", async (ev) => {
-  const el = ev.target.closest("[data-act],[data-cat],[data-scat],[data-sprice],[data-pimg]"); if (!el) return;
+  const el = ev.target.closest("[data-act],[data-cat],[data-scat],[data-sprice],[data-pimg],[data-rcat],[data-rprice]"); if (!el) return;
+  if (el.dataset.rcat || el.dataset.rprice) { if (el.dataset.rcat) RF.cat = el.dataset.rcat; else RF.price = el.dataset.rprice;
+    $$("[data-rcat]").forEach((c) => c.setAttribute("aria-pressed", c.dataset.rcat === RF.cat)); $$("[data-rprice]").forEach((c) => c.setAttribute("aria-pressed", c.dataset.rprice === RF.price)); return drawResources(); }
   if (el.dataset.pimg) { const m = $("#pmain"); if (m) m.src = el.dataset.pimg; return; }
   if (el.dataset.scat || el.dataset.sprice) { if (el.dataset.scat) SF.cat = el.dataset.scat; else SF.price = el.dataset.sprice;
     $$("[data-scat]").forEach((c) => c.setAttribute("aria-pressed", c.dataset.scat === SF.cat)); $$("[data-sprice]").forEach((c) => c.setAttribute("aria-pressed", c.dataset.sprice === SF.price)); return drawStore(); }
@@ -574,6 +625,7 @@ document.addEventListener("click", async (ev) => {
 document.addEventListener("input", (ev) => {
   const t = ev.target;
   if (t.dataset.bind) { const [a, b] = t.dataset.bind.split("."); if (b) o()[a][b] = t.value; else o()[a] = t.value; }
+  if (t.id === "rs-q") { RF.q = t.value; drawResources(); }
   if (t.id === "st-q") { SF.q = t.value; drawStore(); }
   if (t.id === "st-sort") { SF.sort = t.value; drawStore(); }
   if (t.id === "pf-q") { S.filter.q = t.value; drawPortfolio(); }

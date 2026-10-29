@@ -1,10 +1,11 @@
 import { sb, esc, toast, fld, chk, busy, must } from "./admin-lib.js";
 import { $, $$, money, range, fmtDate, STATUS } from "./util.js";
-import { viewStore, viewNotify } from "./admin-store.js?v=20261025e";
-import { viewServices, viewPortfolio, viewSite, viewPayments } from "./admin-content.js?v=20261025e";
+import { viewResources } from "./admin-resources.js?v=20261029a";
+import { viewStore, viewNotify } from "./admin-store.js?v=20261029a";
+import { viewServices, viewPortfolio, viewSite, viewPayments } from "./admin-content.js?v=20261029a";
 
 const root = $("#root");
-const NAV = [["dashboard", "Dashboard"], ["orders", "Orders"], ["payments", "Payments"], ["services", "Services & pricing"], ["portfolio", "Portfolio"], ["store", "Store"], ["notify", "Notifications"], ["site", "Site editor"], ["audit", "Audit log"]];
+const NAV = [["dashboard", "Dashboard"], ["orders", "Orders"], ["payments", "Payments"], ["services", "Services & pricing"], ["portfolio", "Portfolio"], ["store", "Store"], ["resources", "Creator tools"], ["notify", "Notifications"], ["site", "Site editor"], ["audit", "Audit log"]];
 let channel = null;
 
 /* ---------- auth ---------- */
@@ -55,6 +56,7 @@ async function route() {
     else if (k === "payments") await viewPayments(view());
     else if (k === "services") await viewServices(view(), id);
     else if (k === "portfolio") await viewPortfolio(view(), id);
+    else if (k === "resources") await viewResources(view(), id);
     else if (k === "store") await viewStore(view(), id);
     else if (k === "notify") await viewNotify(view());
     else if (k === "site") await viewSite(view());

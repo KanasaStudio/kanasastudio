@@ -48,7 +48,7 @@ async function loadProjects(force) {
 function renderChrome() {
   const b = set("brand"), nav = set("nav", []), f = set("footer"), soc = set("socials", []);
   $("#brand").innerHTML = `<img src="${esc(safeUrl(b.logo_url))}" alt="" width="30" height="30"><span>${esc(b.name || "Studio")}${b.partner ? ` <small>× ${esc(b.partner)}</small>` : ""}</span>`;
-  $("#nav").innerHTML = (Array.isArray(nav) ? nav : []).map((n) => `<a href="${esc(safeUrl(n.href))}">${esc(n.label)}</a>`).join("");
+  $("#nav").innerHTML = (Array.isArray(nav) ? nav : []).map((n) => `<a href="${esc(safeUrl(n.href))}">${esc(n.label)}</a>`).join("") + `<div class="nav-fx"><span class="muted">Currency</span><div class="seg" id="fx2" role="group" aria-label="Display currency" hidden><button data-cur="IDR" aria-pressed="true">IDR</button><button data-cur="USD" aria-pressed="false">USD</button></div></div>`;
   const lg = set("legal", {});
   $("#footer-links").innerHTML = Object.entries(lg).map(([k, l]) => `<li><a href="#/legal/${esc(k)}">${esc(l.title)}</a></li>`).join("") + soc.map((s) => `<li><a href="${esc(safeUrl(s.url))}" target="_blank" rel="noopener noreferrer">${esc(s.label)}</a></li>`).join("");
   $("#footer-text").textContent = f.text || "";
@@ -698,11 +698,11 @@ if (new URLSearchParams(location.search).has("preview")) {
 /* ---------- currency toggle ---------- */
 function drawFx() {
   const box = $("#fx"), show = !!S.fx.rate && cur() === "IDR" && !set("order").fx_disabled;
-  box.hidden = !show; if (!show) return;
-  $$("button", box).forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.cur === (S.fx.mode === "USD" ? "USD" : "IDR"))));
+  box.hidden = !show; const b2 = $("#fx2"); if (b2) { b2.hidden = !show; b2.parentElement.hidden = !show; } if (!show) return;
+  $$("#fx button, #fx2 button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.cur === (S.fx.mode === "USD" ? "USD" : "IDR"))));
   const n = $("#fx-note"); if (n) n.textContent = fxNote();
 }
-$("#fx").addEventListener("click", (e) => { const b = e.target.closest("button[data-cur]"); if (!b) return; S.fx.mode = b.dataset.cur; store.set("kns_cur", S.fx.mode); drawFx(); route(true); if (S.services) drawCart(); });
+document.addEventListener("click", (e) => { const b = e.target.closest("#fx button[data-cur], #fx2 button[data-cur]"); if (!b) return; S.fx.mode = b.dataset.cur; store.set("kns_cur", S.fx.mode); drawFx(); route(true); if (S.services) drawCart(); });
 async function refreshFx(force) { const r = await getRate(force); if (r) { S.fx.rate = r.rate; S.fx.at = r.at; drawFx(); if (S.fx.mode === "USD") { route(true); if (S.services) drawCart(); } } }
 
 /* ---------- boot ---------- */

@@ -319,3 +319,45 @@ details.acc > summary { cursor: pointer; padding: .8rem 1rem; font-weight: 500; 
 }
 @media (prefers-reduced-motion: reduce) { .n-wrap h2 a, .n-wrap h3 a { transition: none; } }
 .n-wrap.page { padding-top: var(--space-6); }
+
+/* ---------- card preview videos ---------- */
+.work .thumb, .rthumb { position: relative; }
+.pvbox { position: absolute; inset: 0; pointer-events: none; }
+.pv { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity var(--dur-2) var(--ease); background: var(--surface); }
+.pv-on .pv { opacity: 1; }
+.pvdot { position: absolute; left: .6rem; bottom: .6rem; width: 1.75rem; height: 1.75rem; background: color-mix(in srgb, var(--bg) 78%, transparent); border: 1px solid var(--border); display: grid; place-items: center; transition: opacity var(--dur-2); pointer-events: none; }
+.pvdot::before { content: ""; border-left: .55rem solid var(--text); border-block: .35rem solid transparent; margin-left: .15rem; }
+.pv-on .pvdot, a:hover .pvdot, a:focus-visible .pvdot { opacity: 0; }
+.rcard.has-cover { flex-direction: column; padding: 0; gap: 0; overflow: hidden; }
+.rcard.has-cover .rthumb { aspect-ratio: 16 / 9; background: var(--surface-2); border-bottom: var(--border-w) solid var(--border); overflow: hidden; }
+.rcard.has-cover .rthumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.rcard.has-cover .ricon, .rcard.has-cover .rbody { margin: 0; }
+.rcard.has-cover { display: grid; grid-template-columns: auto 1fr; }
+.rcard.has-cover .rthumb { grid-column: 1 / -1; }
+.rcard.has-cover .ricon { margin: var(--space-4) 0 var(--space-4) var(--space-4); }
+.rcard.has-cover .rbody { padding: var(--space-4) var(--space-4) var(--space-4) 0; }
+
+/* ---------- layout controls set in the admin (Site editor → Sections, Theme) ---------- */
+.sec { --pmin: 15rem; --rmin: 19rem; --span: 4; }
+.sec .section { padding-block: var(--sec-pad, var(--space-8)); }
+.pgrid { grid-template-columns: repeat(auto-fill, minmax(min(100%, var(--pmin, 15rem)), 1fr)); }
+.rgrid { grid-template-columns: repeat(auto-fill, minmax(min(100%, var(--rmin, 19rem)), 1fr)); }
+.sec[data-size="sm"], html[data-card="sm"] { --pmin: 11rem; --rmin: 15rem; --span: 3; }
+.sec[data-size="lg"], html[data-card="lg"] { --pmin: 21rem; --rmin: 26rem; --span: 6; }
+.sec[data-size="sm"] { --sec-pad: var(--space-6); }
+.sec[data-size="lg"] { --sec-pad: var(--space-9); }
+.sec[data-size="sm"] .hero-full { height: 52svh; min-height: 16rem; }
+.sec[data-size="lg"] .hero-full { height: 100svh; min-height: 30rem; }
+.sec[data-width="narrow"] { --container: 56rem; }
+.sec[data-width="wide"] { --container: 1600px; }
+.sec[data-width="full"] { --container: 4000px; }
+.sec[data-size="sm"] .work, .sec[data-size="sm"] .work:nth-child(5n+1), .sec[data-size="sm"] .work:nth-child(5n+2),
+html[data-card="sm"] .work, html[data-card="sm"] .work:nth-child(5n+1), html[data-card="sm"] .work:nth-child(5n+2) { grid-column: span 3; }
+.sec[data-size="lg"] .work, .sec[data-size="lg"] .work:nth-child(5n+1), .sec[data-size="lg"] .work:nth-child(5n+2),
+html[data-card="lg"] .work, html[data-card="lg"] .work:nth-child(5n+1), html[data-card="lg"] .work:nth-child(5n+2) { grid-column: span 6; }
+@media (max-width: 900px) { .sec[data-size] .work, html[data-card] .work { grid-column: span 6 !important; } }
+@media (max-width: 560px) { .sec[data-size] .work, html[data-card] .work { grid-column: 1 / -1 !important; } }
+
+/* ---------- performance: skip rendering sections that are far off screen ---------- */
+.sec > .section { content-visibility: auto; contain-intrinsic-size: auto 38rem; }
+@media (prefers-reduced-motion: reduce) { .pv { transition: none; } }

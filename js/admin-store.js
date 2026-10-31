@@ -1,4 +1,4 @@
-import { sb, esc, toast, fld, chk, csv, uploadPublic, busy, must } from "./admin-lib.js";
+import { sb, esc, toast, fld, chk, csv, uploadPublic, busy, must, previewPanel, resolvePreview, posterFrom } from "./admin-lib.js";
 import { $, $$, money, slugify, uid } from "./util.js";
 
 const fmtPrice = (p) => (+p > 0 ? money(p, "IDR") : "Free");
@@ -63,6 +63,7 @@ async function prodEdit(el, id) {
       ${fld("summary", "Short summary (max 300)", p.summary ?? "", { area: 2, attrs: "maxlength=300" })}${fld("description", "Description", p.description ?? "", { area: 7 })}${fld("license_note", "License note (what the buyer may do)", p.license_note ?? "", { area: 2, attrs: "maxlength=500" })}</div>
     <div class="panel"><h2>Download link (private)</h2><p class="muted" style="font-size:.85rem">Paste an https link (Google Drive, Mega, Dropbox, itch.io…) to the file. It is never shown publicly: free products reveal it on click, paid products only after you confirm the payment. Make sure the link itself is "anyone with the link".</p>
       ${fld("download_url", "Download URL", dl, { type: "url", attrs: 'placeholder="https://" maxlength=500' })}</div>
+    ${previewPanel(p.preview_video_url)}
     <div class="panel"><h2>Images</h2><div class="field"><label>Cover</label><input class="input" id="cov" type="file" accept="image/*">${p.cover_url ? `<img class="thumb-s" src="${esc(p.cover_url)}" alt="" style="margin-top:.5rem">` : ""}</div>${fld("cover_alt", "Cover alt text", p.cover_alt ?? "")}
       ${gallery.map((u, i) => `<div class="rowedit" style="grid-template-columns:auto 1fr auto;align-items:center"><img class="thumb-s" src="${esc(u)}" alt=""><span class="muted mono" style="overflow:hidden;text-overflow:ellipsis">${esc(u.split("/").pop())}</span><button type="button" class="btn danger sm" data-rm="${i}">✕</button></div>`).join("")}
       <div class="field" style="margin-top:1rem"><label for="gf">Add gallery images</label><input class="input" id="gf" type="file" accept="image/*" multiple></div></div>
@@ -82,6 +83,8 @@ async function prodEdit(el, id) {
     if (row.status === "published" && !url) throw new Error("Add the download link before publishing.");
     if (row.status === "published" && !(row.cover_url || $("#cov").files[0]) && !confirm("No cover image. Publish anyway?")) return;
     const cov = $("#cov").files[0]; if (cov) row.cover_url = await uploadPublic(cov, "store");
+    const pv = await resolvePreview(p.preview_video_url, "store"); row.preview_video_url = pv.url;
+    if (pv.file && !row.cover_url) row.cover_url = await posterFrom(pv.file, "store");
     for (const g of $("#gf").files) gallery.push(await uploadPublic(g, "store")); row.gallery = gallery;
     let pid = p.id;
     try { if (isNew) { pid = must(await sb.from("products").insert(row).select("id").single()).id; p.id = pid; isNew = false; } else must(await sb.from("products").update(row).eq("id", pid)); } catch (e) { throw friendly(e); }

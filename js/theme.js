@@ -5,6 +5,7 @@ const FONTS = {
   system: 'system-ui, -apple-system, "Segoe UI", Roboto, sans-serif',
 };
 export const FONT_CHOICES = Object.keys(FONTS);
+const EXTRA_FONTS = { "space-grotesk": "Space+Grotesk", "ibm-plex-sans": "IBM+Plex+Sans" };
 const HEX = /^#[0-9a-f]{6}$/i;
 
 export function applyTheme(t = {}) {
@@ -12,6 +13,10 @@ export function applyTheme(t = {}) {
   const c = { "--bg": t.bg, "--surface": t.surface, "--surface-2": t.surface2, "--text": t.text, "--muted": t.muted, "--accent": t.accent, "--border": t.border };
   for (const [k, v] of Object.entries(c)) if (HEX.test(v || "")) set(k, v);
   if (FONTS[t.font]) set("--font-sans", FONTS[t.font]);
+  if (EXTRA_FONTS[t.font] && !document.getElementById("font-" + t.font)) {      // only download the font that is actually selected
+    const l = document.createElement("link"); l.id = "font-" + t.font; l.rel = "stylesheet"; l.href = `https://fonts.googleapis.com/css2?family=${EXTRA_FONTS[t.font]}:wght@400;500;600&display=swap`; document.head.append(l);
+  }
+  document.documentElement.dataset.card = ["sm", "lg"].includes(t.card_size) ? t.card_size : "";
   if (t.body_size >= 14 && t.body_size <= 20) set("--body-size", t.body_size + "px");
   if (t.heading_scale >= 0.7 && t.heading_scale <= 1.4) set("--heading-scale", t.heading_scale);
   if (t.container >= 960 && t.container <= 1600) set("--container", t.container + "px");

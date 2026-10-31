@@ -1,9 +1,9 @@
 import { sb, esc, toast, fld, chk, busy, must } from "./admin-lib.js";
 import { $, $$, money, range, fmtDate, STATUS } from "./util.js";
-import { viewResources } from "./admin-resources.js?v=20261030a";
-import { viewNews } from "./admin-news.js?v=20261030a";
-import { viewStore, viewNotify } from "./admin-store.js?v=20261030a";
-import { viewServices, viewPortfolio, viewSite, viewPayments } from "./admin-content.js?v=20261030a";
+import { viewResources } from "./admin-resources.js?v=20261031a";
+import { viewNews } from "./admin-news.js?v=20261031a";
+import { viewStore, viewNotify } from "./admin-store.js?v=20261031a";
+import { viewServices, viewPortfolio, viewSite, viewPayments } from "./admin-content.js?v=20261031a";
 
 const root = $("#root");
 const NAV = [["dashboard", "Dashboard"], ["orders", "Orders"], ["payments", "Payments"], ["services", "Services & pricing"], ["portfolio", "Portfolio"], ["store", "Store"], ["resources", "Creator tools"], ["news", "News"], ["notify", "Notifications"], ["site", "Site editor"], ["audit", "Audit log"]];

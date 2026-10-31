@@ -1,4 +1,4 @@
-import { sb, esc, toast, fld, chk, csv, uploadPublic, busy, must } from "./admin-lib.js";
+import { sb, esc, toast, fld, chk, csv, uploadPublic, busy, must, previewPanel, resolvePreview, posterFrom } from "./admin-lib.js";
 import { $, $$, slugify } from "./util.js";
 
 const PRICING = [["free", "Free"], ["freemium", "Free + paid"], ["paid", "Paid"]];
@@ -67,12 +67,17 @@ async function resEdit(el, id) {
     ${fld("status", "Status", r.status, { opts: [["published", "Shown"], ["draft", "Hidden (draft)"], ["archived", "Archived"]] })}${chk("is_featured", "Show on the home page", r.is_featured)}${fld("tags", "Search keywords (comma separated)", (r.tags || []).join(", "))}${fld("sort_order", "Order (small = first)", r.sort_order, { type: "number" })}</div>
     ${fld("description", "Short description (max 300)", r.description ?? "", { area: 3, attrs: "maxlength=300" })}
     <div class="field"><label>Custom icon (optional, otherwise the site's own favicon is used)</label>${r.icon_url ? `<img class="thumb-s" src="${esc(r.icon_url)}" alt="" style="margin-bottom:.4rem;display:block">` : ""}<input class="input" id="ic" type="file" accept="image/*"></div>
+    <div class="field"><label>Cover image (optional, shown on the card)</label>${r.cover_url ? `<img class="thumb-s" src="${esc(r.cover_url)}" alt="" style="margin-bottom:.4rem;display:block">` : ""}<input class="input" id="cv" type="file" accept="image/*"></div>
+    ${previewPanel(r.preview_video_url)}
     <button class="btn" id="save">Save</button></form>`;
   $("#rf").onsubmit = (e) => { e.preventDefault(); busy($("#save"), async () => {
     const f = e.target, row = { title: f.title.value.trim(), url: f.url.value.trim(), description: f.description.value.trim() || null, category_id: f.category_id.value, pricing: f.pricing.value, status: f.status.value,
-      is_featured: f.is_featured.checked, tags: csv(f.tags.value), sort_order: +f.sort_order.value || 0, icon_url: r.icon_url || null };
+      is_featured: f.is_featured.checked, tags: csv(f.tags.value), sort_order: +f.sort_order.value || 0, icon_url: r.icon_url || null, cover_url: r.cover_url || null };
     if (!row.title) throw new Error("Name is required."); if (!/^https:\/\/\S+$/.test(row.url)) throw new Error("The link must start with https://");
     const ic = $("#ic").files[0]; if (ic) row.icon_url = await uploadPublic(ic, "tools");
+    const cv = $("#cv").files[0]; if (cv) row.cover_url = await uploadPublic(cv, "tools");
+    const pv = await resolvePreview(r.preview_video_url, "tools"); row.preview_video_url = pv.url;
+    if (pv.file && !row.cover_url) row.cover_url = await posterFrom(pv.file, "tools");
     if (isNew) must(await sb.from("resources").insert(row)); else must(await sb.from("resources").update(row).eq("id", id));
     toast("Saved.", "ok"); location.hash = "#/resources"; }); };
 }

@@ -4,7 +4,8 @@ import { applyTheme } from "./theme.js";
 import { getRate } from "./fx.js";
 import * as cart from "./cart.js";
 import { initSfx, play as sfx } from "./sfx.js";
-import { initNews, viewNews, newsStrip } from "./news.js?v=20261030a";
+import { initPreviews } from "./preview.js?v=20261031a";
+import { initNews, viewNews, newsStrip } from "./news.js?v=20261031a";
 
 const S = {
   settings: {}, services: null, projects: null,
@@ -30,6 +31,7 @@ async function loadSettings() {
   const { data, error } = await sb.from("site_settings").select("key,value");
   if (error) throw error;
   S.settings = Object.fromEntries(data.map((r) => [r.key, r.value]));
+  store.set("kns_settings", S.settings);
 }
 async function loadServices(force) {
   if (S.services && !force) return S.services;
@@ -88,10 +90,12 @@ function svcRow(s, i) {
     <p class="muted">${esc(s.summary || "")}</p>
     <div class="price">${esc(p.text)}</div></a>`;
 }
+const pvAttr = (p) => { const u = safeUrl(p.preview_video_url); return u ? ` data-pv="${esc(u)}"` : ""; };
+const pvBox = (p) => (safeUrl(p.preview_video_url) ? '<span class="pvbox"></span><span class="pvdot" aria-hidden="true"></span>' : "");
 function workCard(p) {
   const img = safeUrl(p.cover_url);
-  return `<a class="work reveal" href="#/portfolio/${esc(p.slug)}">
-    <div class="thumb">${img ? `<img src="${esc(img)}" alt="${esc(p.cover_alt || p.title)}" loading="lazy" decoding="async">` : ""}</div>
+  return `<a class="work reveal" href="#/portfolio/${esc(p.slug)}"${pvAttr(p)}>
+    <div class="thumb">${img ? `<img src="${esc(img)}" alt="${esc(p.cover_alt || p.title)}" loading="lazy" decoding="async">` : ""}${pvBox(p)}</div>
     <div class="meta"><span>${esc(p.title)}</span><span>${esc(p.category)}${p.badge ? ` · ${esc(p.badge)}` : ""}</span></div></a>`;
 }
 const emptyBox = (t, d) => `<div class="empty"><strong>${esc(t)}</strong>${esc(d)}</div>`;
@@ -171,7 +175,11 @@ function contactBlock() {
 async function viewHome() {
   setMeta("");
   const parts = [];
-  for (const sec of set("sections", [])) if (sec.visible && SECTIONS[sec.id]) parts.push(await SECTIONS[sec.id](sec.layout));
+  const SZ = ["sm", "lg"], WD = ["narrow", "wide", "full"];
+  for (const sec of set("sections", [])) if (sec.visible && SECTIONS[sec.id]) {
+    const html = await SECTIONS[sec.id](sec.layout); if (!html) continue;
+    parts.push(`<div class="sec" data-sec="${esc(sec.id)}"${SZ.includes(sec.size) ? ` data-size="${sec.size}"` : ""}${WD.includes(sec.width) ? ` data-width="${sec.width}"` : ""}>${html}</div>`);
+  }
   return parts.join("");
 }
 async function viewServices() {
@@ -239,7 +247,7 @@ function drawPortfolio() {
   const g = $("#pf-grid"); if (!g) return;
   const q = S.filter.q.toLowerCase(), list = S.projects.filter((p) => (S.filter.cat === "all" || p.category === S.filter.cat) && (!q || `${p.title} ${p.summary} ${p.software.join(" ")}`.toLowerCase().includes(q)));
   g.innerHTML = list.length ? list.map(workCard).join("") : `<div style="grid-column:1/-1">${emptyBox("No matches", "Try another filter.")}</div>`;
-  observe();
+  observe(); initPreviews();
 }
 async function viewProject(slug) {
   const all = await loadProjects(), p = all.find((x) => x.slug === slug); if (!p) return notFound();
@@ -248,7 +256,7 @@ async function viewProject(slug) {
   if (models.length) import("https://cdn.jsdelivr.net/npm/@google/model-viewer@3.5.0/dist/model-viewer.min.js").catch(() => {});
   const specs = Object.entries(p.specs || {});
   return `<div class="container page">${shareBtn("portfolio", p.slug)}<a class="eyebrow" href="#/portfolio">← Portfolio</a>
-    <div class="detail" style="margin-top:2rem"><div class="gallery">
+    <div class="detail" style="margin-top:2rem"><div class="gallery">${safeUrl(p.preview_video_url) ? `<video src="${esc(safeUrl(p.preview_video_url))}" ${safeUrl(p.cover_url) ? `poster="${esc(safeUrl(p.cover_url))}"` : ""} controls muted loop playsinline preload="none" aria-label="Preview video" style="width:100%;aspect-ratio:16/9;object-fit:contain;background:var(--surface)"></video>` : ""}
       ${safeUrl(p.cover_url) ? `<img src="${esc(safeUrl(p.cover_url))}" alt="${esc(p.cover_alt || p.title)}">` : ""}
       ${models.map((m) => `<model-viewer src="${esc(safeUrl(m.url))}" alt="${esc(m.alt || p.title)}" camera-controls auto-rotate loading="lazy"></model-viewer>`).join("")}
       ${imgs.map((m) => `<img src="${esc(safeUrl(m.url))}" alt="${esc(m.alt || p.title)}" loading="lazy">`).join("")}</div>
@@ -396,7 +404,7 @@ async function loadStore(force) {
 const pPrice = (p) => +p.price > 0 ? M(p.price) : "Free";
 function prodCard(p, cats) {
   const img = safeUrl(p.cover_url), c = cats.find((x) => x.id === p.category_id);
-  return `<a class="pcard reveal" href="#/store/${esc(p.slug)}"><div class="thumb">${img ? `<img src="${esc(img)}" alt="${esc(p.cover_alt || p.title)}" loading="lazy" decoding="async">` : ""}<span class="ptag ${+p.price > 0 ? "" : "free"}">${esc(pPrice(p))}</span></div>
+  return `<a class="pcard reveal" href="#/store/${esc(p.slug)}"${pvAttr(p)}><div class="thumb">${img ? `<img src="${esc(img)}" alt="${esc(p.cover_alt || p.title)}" loading="lazy" decoding="async">` : ""}${pvBox(p)}<span class="ptag ${+p.price > 0 ? "" : "free"}">${esc(pPrice(p))}</span></div>
     <div class="meta"><strong>${esc(p.title)}</strong><span class="muted">${esc(c?.name || "")}${p.version ? ` · v${esc(p.version)}` : ""}</span>${p.summary ? `<p class="muted" style="margin:.2rem 0 0;font-size:.875rem">${esc(p.summary)}</p>` : ""}</div></a>`;
 }
 async function viewStore(q) {
@@ -420,7 +428,7 @@ function drawStore() {
   const by = { featured: (a, b) => (b.is_featured - a.is_featured) || (a.sort_order - b.sort_order), new: (a, b) => b.created_at.localeCompare(a.created_at), low: (a, b) => a.price - b.price, high: (a, b) => b.price - a.price, az: (a, b) => a.title.localeCompare(b.title) };
   list = [...list].sort(by[SF.sort] || by.featured);
   g.innerHTML = list.length ? list.map((p) => prodCard(p, cats)).join("") : `<div style="grid-column:1/-1">${emptyBox("No matches", "Try another category or clear the search.")}</div>`;
-  observe();
+  observe(); initPreviews();
 }
 async function viewProduct(slug) {
   const { cats, products } = await loadStore(), p = products.find((x) => x.slug === slug);
@@ -429,7 +437,7 @@ async function viewProduct(slug) {
   const c = cats.find((x) => x.id === p.category_id), free = +p.price === 0, imgs = [p.cover_url, ...(p.gallery || [])].map(safeUrl).filter(Boolean);
   const meta = [["Category", c?.name], ["Version", p.version], ["Works with", p.compatibility], ["File", p.file_info], ["License", p.license_note]].filter((x) => x[1]);
   return `<div class="container page">${shareBtn("store", p.slug)}<a class="eyebrow" href="#/store">← Store</a>
-    <div class="two" style="margin-top:1.5rem"><div>${imgs.length ? `<img class="prod-main" id="pmain" src="${esc(imgs[0])}" alt="${esc(p.cover_alt || p.title)}">${imgs.length > 1 ? `<div class="prod-thumbs">${imgs.map((u, i) => `<button type="button" class="chip" data-pimg="${esc(u)}" aria-label="Image ${i + 1}"><img src="${esc(u)}" alt="" loading="lazy"></button>`).join("")}</div>` : ""}` : `<div class="prod-main"></div>`}</div>
+    <div class="two" style="margin-top:1.5rem"><div>${safeUrl(p.preview_video_url) ? `<video class="prod-main" src="${esc(safeUrl(p.preview_video_url))}" ${imgs[0] ? `poster="${esc(imgs[0])}"` : ""} controls muted loop playsinline preload="none" aria-label="Preview video" style="margin-bottom:.8rem"></video>` : ""}${imgs.length ? `<img class="prod-main" id="pmain" src="${esc(imgs[0])}" alt="${esc(p.cover_alt || p.title)}">${imgs.length > 1 ? `<div class="prod-thumbs">${imgs.map((u, i) => `<button type="button" class="chip" data-pimg="${esc(u)}" aria-label="Image ${i + 1}"><img src="${esc(u)}" alt="" loading="lazy"></button>`).join("")}</div>` : ""}` : `<div class="prod-main"></div>`}</div>
       <div><span class="eyebrow">${esc(c?.name || "")}</span><h1 style="font-size:var(--fs-h2);margin:.6rem 0">${esc(p.title)}</h1>
         <div class="refbox" style="font-size:1.6rem;margin:.5rem 0">${esc(pPrice(p))}</div>${!free && usdOn() ? `<p class="muted" style="font-size:.8125rem">${esc(fxNote())}</p>` : ""}
         <p class="lead" style="font-size:1rem">${esc(p.summary || "")}</p>
@@ -471,7 +479,9 @@ const hostOf = (u) => { try { return new URL(u).hostname.replace(/^www\./, ""); 
 function resCard(r, cats) {
   const url = safeUrl(r.url); if (!url) return "";
   const c = cats.find((x) => x.id === r.category_id), icon = safeUrl(r.icon_url) || `https://www.google.com/s2/favicons?domain=${encodeURIComponent(hostOf(url))}&sz=64`;
-  return `<a class="rcard reveal" href="${esc(url)}" target="_blank" rel="noopener noreferrer nofollow">
+  const cov = safeUrl(r.cover_url), pv = safeUrl(r.preview_video_url), head = cov || pv
+    ? `<span class="rthumb">${cov ? `<img src="${esc(cov)}" alt="" loading="lazy" decoding="async">` : ""}${pvBox(r)}</span>` : "";
+  return `<a class="rcard reveal${head ? " has-cover" : ""}" href="${esc(url)}" target="_blank" rel="noopener noreferrer nofollow"${pvAttr(r)}>${head}
     <span class="ricon"><span aria-hidden="true">${esc((r.title || "?")[0].toUpperCase())}</span><img src="${esc(icon)}" alt="" width="32" height="32" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()"></span>
     <span class="rbody"><strong>${esc(r.title)} <span class="rarrow" aria-hidden="true">↗</span></strong><span class="muted rdesc">${esc(r.description || "")}</span>
       <span class="rmeta"><span class="tag ${r.pricing === "free" ? "accent" : ""}">${esc(PRICE_LABEL[r.pricing] || r.pricing)}</span>${c ? `<span class="tag">${esc(c.name)}</span>` : ""}<span class="muted mono" style="font-size:.75rem">${esc(hostOf(url))}</span></span></span></a>`;
@@ -494,7 +504,7 @@ function drawResources() {
   const { cats, items } = S.res, q = RF.q.toLowerCase(), cat = cats.find((c) => c.slug === RF.cat);
   const list = items.filter((r) => (RF.cat === "all" || r.category_id === cat?.id) && (RF.price === "all" || r.pricing === RF.price) && (!q || `${r.title} ${r.description || ""} ${(r.tags || []).join(" ")}`.toLowerCase().includes(q)));
   g.innerHTML = list.length ? list.map((r) => resCard(r, cats)).join("") : `<div style="grid-column:1/-1">${emptyBox("No matches", "Try another category or clear the search.")}</div>`;
-  observe();
+  observe(); initPreviews();
 }
 
 /* ---------- track ---------- */
@@ -577,6 +587,7 @@ async function route(keep) {
   if (parts[0] === "portfolio" && !parts[1]) drawPortfolio();
   if (parts[0] === "store" && !parts[1]) drawStore();
   if (parts[0] === "resources") drawResources();
+  initPreviews();
   if (parts[0] === "order" && S.services) wireOrder();
   observe();
 }
@@ -711,8 +722,14 @@ async function refreshFx(force) { const r = await getRate(force); if (r) { S.fx.
 
 /* ---------- boot ---------- */
 (async () => {
-  try { await loadSettings(); renderChrome(); } catch (e) { app.innerHTML = fail(e); return; }
-  await route();
+  const cached = store.get("kns_settings", null);
+  if (cached && cached.brand) {
+    S.settings = cached; renderChrome(); route();                 // paint instantly from the last visit…
+    try { const before = JSON.stringify(cached); await loadSettings(); if (JSON.stringify(S.settings) !== before) { renderChrome(); route(true); } } catch { /* keep cached */ }
+  } else {
+    try { await loadSettings(); renderChrome(); } catch (e) { app.innerHTML = fail(e); return; }
+    await route();
+  }
   loadServices().then(drawCart).catch(() => {});
   refreshFx(); setInterval(() => refreshFx(true), 30 * 60 * 1000);   // live rate, refreshed every 30 min
 })();

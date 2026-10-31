@@ -44,3 +44,10 @@ details.acc > div { padding: 0 1rem 1rem; }
 .msg { padding: .7rem .9rem; border-left: 3px solid var(--border); margin-bottom: .5rem; background: var(--bg); white-space: pre-wrap; }
 .msg.internal { border-color: var(--warn); } .msg.client { border-color: var(--accent); }
 .thumb-s { width: 56px; height: 42px; object-fit: cover; border: 1px solid var(--border); }
+.secrow { display: block; background: var(--bg); padding: .7rem .5rem; }
+.sechead { display: flex; align-items: center; gap: .5rem; margin-bottom: .5rem; } .sechead strong { flex: 1; }
+.secfields { display: grid; grid-template-columns: repeat(auto-fit, minmax(5.2rem, 1fr)); gap: .4rem; align-items: end; font-size: .8125rem; }
+.secrow.dragging { background: var(--surface-2); outline: 1px solid var(--accent); position: relative; z-index: 2; }
+.drag { cursor: grab; touch-action: none; user-select: none; background: none; border: 1px solid var(--border); color: var(--muted); width: 2rem; height: 2.25rem; font-size: 1.1rem; line-height: 1; }
+.drag:hover, .drag:focus-visible { color: var(--text); border-color: var(--text); }
+.secrow.dragging .drag { cursor: grabbing; }

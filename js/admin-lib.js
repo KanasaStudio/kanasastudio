@@ -50,3 +50,26 @@ export async function busy(btn, fn) {
   try { return await fn(); } catch (e) { toast(/slug_key/.test(e.message || "") ? "That URL slug is already used by another item. Change the slug field, or open the existing item from the list." : (e.message || String(e))); } finally { btn.disabled = false; btn.innerHTML = t; }
 }
 export const must = ({ data, error }) => { if (error) throw error; return data; };
+
+/* ---- optional card preview video (portfolio / store / tools) ---- */
+export const previewPanel = (url) => `<div class="panel"><h2>Preview video (optional)</h2><p class="muted" style="font-size:.85rem">A short silent loop (5–10 s, MP4 or WebM, under 12 MB, ~720p is plenty). It plays when visitors hover the card, or when it scrolls into view on phones. The cover image shows until then, so the page stays light.</p>
+  ${url ? `<video src="${esc(url)}" muted playsinline controls preload="metadata" style="max-width:18rem;display:block;margin-bottom:.5rem"></video><label class="check" style="margin-bottom:.6rem"><input type="checkbox" id="pv-rm"> Remove the preview video</label>` : ""}<input class="input" id="pv-file" type="file" accept="video/mp4,video/webm" aria-label="Preview video file"></div>`;
+export async function resolvePreview(current, folder) {
+  const rm = document.getElementById("pv-rm")?.checked, file = document.getElementById("pv-file")?.files[0];
+  if (!file) return { url: rm ? null : current || null, file: null };
+  if (!/^video\/(mp4|webm)$/.test(file.type)) throw new Error("The preview must be an MP4 or WebM file.");
+  if (file.size > 12 * 1048576) throw new Error("The preview video is over 12 MB. Trim it to 5–10 seconds or compress it.");
+  return { url: await uploadPublic(file, folder), file };
+}
+/* First frame of a video as a WebP cover, for items that have no cover image yet. */
+export async function posterFrom(file, folder) {
+  try {
+    const u = URL.createObjectURL(file), v = document.createElement("video"); v.muted = true; v.playsInline = true; v.preload = "auto"; v.src = u;
+    await new Promise((ok, no) => { v.onloadeddata = ok; v.onerror = no; setTimeout(no, 8000); });
+    v.currentTime = Math.min(0.4, (v.duration || 1) / 2); await new Promise((ok) => { v.onseeked = ok; setTimeout(ok, 1500); });
+    const c = document.createElement("canvas"), sc = Math.min(1, 1280 / v.videoWidth); c.width = Math.round(v.videoWidth * sc); c.height = Math.round(v.videoHeight * sc);
+    c.getContext("2d").drawImage(v, 0, 0, c.width, c.height); URL.revokeObjectURL(u);
+    const blob = await new Promise((r) => c.toBlob(r, "image/webp", 0.82)); if (!blob) return null;
+    return await uploadPublic(new File([blob], "poster.webp", { type: "image/webp" }), folder);
+  } catch { return null; }
+}

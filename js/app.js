@@ -4,6 +4,7 @@ import { applyTheme } from "./theme.js";
 import { getRate } from "./fx.js";
 import * as cart from "./cart.js";
 import { initSfx, play as sfx } from "./sfx.js";
+import { initNews, viewNews, newsStrip } from "./news.js?v=20261030a";
 
 const S = {
   settings: {}, services: null, projects: null,
@@ -14,6 +15,7 @@ const S = {
 const app = $("#app");
 const set = (k, d = {}) => S.settings[k] ?? d;
 const cur = () => set("order").currency || "IDR";
+initNews({ setMeta, observe, set });
 
 /* ---------- display currency (live USD conversion, display only) ---------- */
 S.fx = { rate: null, at: null, mode: store.get("kns_cur", "IDR") };
@@ -132,6 +134,7 @@ const SECTIONS = {
     if (!use.length) return "";
     return `<section class="section"><div class="container"><div class="section-head"><span class="eyebrow">Tools</span><h2>Handy creator tools</h2><a class="btn ghost sm" href="#/resources">All tools</a></div><div class="rgrid">${use.map((r) => resCard(r, cats)).join("")}</div></div></section>`;
   },
+  async news() { try { return await newsStrip(); } catch { return ""; } },
   testimonials() {
     const t = (set("testimonials", []) || []).filter((x) => x.quote);
     if (!t.length) return "";
@@ -560,6 +563,7 @@ async function route(keep) {
     else if (parts[0] === "portfolio") html = parts[1] ? await viewProject(parts[1]) : await viewPortfolio();
     else if (parts[0] === "store") html = parts[1] ? await viewProduct(parts[1]) : await viewStore(q);
     else if (parts[0] === "resources") html = await viewResources(q);
+    else if (parts[0] === "news") html = await viewNews(parts.slice(1), q);
     else if (parts[0] === "legal") html = await legalView(parts[1]);
     else if (parts[0] === "about") html = viewAbout();
     else if (parts[0] === "order") html = await viewOrder();

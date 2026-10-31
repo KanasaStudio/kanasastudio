@@ -45,6 +45,14 @@ for (const s of services) await page("services", s.slug, `services/${s.slug}`, s
 for (const p of projects) await page("portfolio", p.slug, `portfolio/${p.slug}`, p.title, clip(p.summary) || `Portfolio: ${p.title}`, p.cover_url);
 for (const p of products) await page("store", p.slug, `store/${p.slug}`, p.title, `${+p.price > 0 ? idr(p.price) : "Free"} · ${clip(p.summary, 160) || "Digital product"}`, p.cover_url);
 
+// Kanasa News: share pages for the newest articles (headline + attribution only; the page redirects to the in-app article).
+try {
+  const news = await get("news_articles?select=slug,title,summary,image_url,source_name&status=eq.published&order=published_at.desc&limit=300");
+  for (const a of news) await page("news", a.slug, `news/a/${a.slug}`, a.title, clip(`${a.source_name}: ${a.summary || "Berita dari penerbit"}`, 200), a.image_url);
+  const ncats = await get("news_categories?select=slug,name,description&is_active=eq.true");
+  for (const c of ncats) await page("news-category", c.slug, `news/c/${c.slug}`, `${c.name} — Kanasa News`, c.description || `Berita ${c.name}`, null);
+} catch (e) { console.warn("News share pages skipped:", e.message); }
+
 const urls = [`${BASE}/`, ...pages];
 await writeFile("sitemap.xml", `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls.map((u) => `  <url><loc>${esc(u)}</loc></url>`).join("\n")}\n</urlset>\n`);
 console.log(`Built ${pages.length} share pages + sitemap.xml`);

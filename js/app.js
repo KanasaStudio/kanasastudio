@@ -4,8 +4,9 @@ import { applyTheme } from "./theme.js";
 import { getRate } from "./fx.js";
 import * as cart from "./cart.js";
 import { initSfx, play as sfx } from "./sfx.js";
-import { initPreviews } from "./preview.js?v=20261031a";
-import { initNews, viewNews, newsStrip } from "./news.js?v=20261031a";
+import { initPreviews } from "./preview.js?v=20261103a";
+import { initOffline, warmOffline } from "./offline.js?v=20261103a";
+import { initNews, viewNews, newsStrip, warmNews } from "./news.js?v=20261103a";
 
 const S = {
   settings: {}, services: null, projects: null,
@@ -515,6 +516,7 @@ async function viewTrack(q) {
   const saved = store.get("kns_orders", []);
   const d = t.data;
   return `<div class="container page"><div class="page-head"><span class="eyebrow">Track</span><h1 style="margin-top:1rem;font-size:var(--fs-h2)">Order status</h1></div>
+   ${t.offlineAt ? `<div class="notice" role="status" style="margin-bottom:1.5rem"><strong>Offline.</strong> This is the status saved on this device on ${esc(fmtDate(t.offlineAt))}. Reconnect to see the latest update; messages and payments need internet.</div>` : ""}
    ${d ? `<div class="two"><div><div class="eyebrow">${esc(d.reference)}</div><h2 style="margin:.6rem 0 1.5rem">${esc(STATUS[d.status] || d.status)}</h2>
       <ul class="timeline">${d.history.map((h) => `<li><strong>${esc(STATUS[h.to_status] || h.to_status)}</strong><div class="muted mono">${esc(fmtDate(h.created_at))}</div>${h.note ? `<div>${esc(h.note)}</div>` : ""}</li>`).join("")}</ul></div>
      <div><div class="summary">${d.items.map((i) => `<div class="line"><span>${esc(i.service_name)} <span class="muted">${esc(i.tier_name || "")} ×${i.quantity}</span></span></div>`).join("")}
@@ -532,10 +534,15 @@ async function viewTrack(q) {
       ${saved.length ? `<h3 style="margin:2.5rem 0 1rem;font-size:1.1rem">On this device</h3>${saved.map((s) => `<a class="svc-row" style="grid-template-columns:1fr auto" href="#/track?ref=${esc(s.reference)}&t=${esc(s.token)}"><span class="mono">${esc(s.reference)}</span><span class="muted">${esc(new Date(s.at).toLocaleDateString())}</span></a>`).join("")}` : ""}`}</div>`;
 }
 async function doTrack() {
-  const t = S.track; t.loading = true; t.error = "";
+  const t = S.track; t.loading = true; t.error = ""; t.offlineAt = null;
   const { data, error } = await sb.rpc("track_order", { p_reference: t.ref, p_token: t.token });
   t.loading = false;
-  if (error) { t.error = error.message; t.data = null; } else if (!data) { t.error = "No order matches that reference and token."; t.data = null; } else t.data = data;
+  const saved = store.get("kns_trackcache", {})[t.ref];
+  if (error) {
+    if (saved && saved.token === t.token && (!navigator.onLine || /offline|failed to fetch/i.test(error.message))) { t.data = saved.data; t.offlineAt = saved.at; }   // last known status, kept on this device only
+    else { t.error = error.message; t.data = null; }
+  } else if (!data) { t.error = "No order matches that reference and token."; t.data = null; }
+  else { t.data = data; const all = store.get("kns_trackcache", {}); all[t.ref] = { token: t.token, data, at: new Date().toISOString() }; store.set("kns_trackcache", Object.fromEntries(Object.entries(all).slice(-8))); }
 }
 
 /* ---------- cart drawer ---------- */
@@ -731,5 +738,8 @@ async function refreshFx(force) { const r = await getRate(force); if (r) { S.fx.
     await route();
   }
   loadServices().then(drawCart).catch(() => {});
+  initOffline(() => { toast("Back online.", "ok"); route(true); refreshFx(true); });
+  const idle = window.requestIdleCallback || ((f) => setTimeout(f, 3000));
+  idle(() => warmOffline([loadSettings, () => loadServices(true), () => loadProjects(true), () => loadStore(true), () => loadRes(true), warmNews]), { timeout: 8000 });
   refreshFx(); setInterval(() => refreshFx(true), 30 * 60 * 1000);   // live rate, refreshed every 30 min
 })();

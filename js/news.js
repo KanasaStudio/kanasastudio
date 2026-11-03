@@ -24,11 +24,11 @@ export function initNews(h) {
 /* ---------- data ---------- */
 async function loadMeta() {
   if (!CATS) {
-    const [c, n] = await Promise.all([sb.from("news_categories").select("*").eq("is_active", true).order("sort_order"), sb.rpc("news_category_counts")]);
+    const [c, n] = await Promise.all([sb.from("news_categories").select("*").eq("is_active", true).order("sort_order"), sb.rpc("news_category_counts", {}, { get: true })]);
     if (c.error) throw c.error;
     CATS = c.data; COUNTS = n.data || {};
   }
-  if (!FACETS || Date.now() - factAt > 300000) { const f = await sb.rpc("news_facets"); FACETS = f.data || { sources: [], languages: [] }; factAt = Date.now(); }
+  if (!FACETS || Date.now() - factAt > 300000) { const f = await sb.rpc("news_facets", {}, { get: true }); FACETS = f.data || { sources: [], languages: [] }; factAt = Date.now(); }
 }
 const cat = (a) => CATS.find((c) => c.id === a.category_id);
 async function latest(n, extra) {
@@ -166,6 +166,9 @@ async function article(slug) {
     ${rel.length ? `<section><h2 class="n-h">Juga diberitakan</h2><p class="muted" style="font-size:.8125rem;margin:-.5rem 0 1rem">Judul mirip dari penerbit lain (dicocokkan otomatis).</p>${rel.map(brief).join("")}</section>` : ""}
     ${more.length ? `<section><h2 class="n-h">${c ? `Lainnya di ${esc(c.name)}` : "Lainnya"}</h2>${more.map(row).join("")}</section>` : ""}${note()}`);
 }
+
+/* Called by the offline warm-up: refetch the shared news data once so it is stored for offline reading. */
+export async function warmNews() { CATS = null; FACETS = null; await loadMeta(); await Promise.all([latest(90), latest(5)]); }
 
 /* Homepage strip for the main site. */
 export async function newsStrip() {

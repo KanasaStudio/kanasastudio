@@ -361,3 +361,8 @@ html[data-card="lg"] .work, html[data-card="lg"] .work:nth-child(5n+1), html[dat
 /* ---------- performance: skip rendering sections that are far off screen ---------- */
 .sec > .section { content-visibility: auto; contain-intrinsic-size: auto 38rem; }
 @media (prefers-reduced-motion: reduce) { .pv { transition: none; } }
+
+/* ---------- offline bar ---------- */
+#offline-bar { position: sticky; top: var(--header-h); z-index: 40; display: flex; align-items: center; gap: .6rem; padding: .5rem var(--gutter); font-size: .8125rem; color: var(--muted); background: var(--surface); border-bottom: var(--border-w) solid var(--border); }
+#offline-bar[hidden] { display: none; }
+#offline-bar span { width: .5rem; height: .5rem; background: var(--accent); flex: none; }

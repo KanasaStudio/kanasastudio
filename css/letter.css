@@ -165,3 +165,61 @@
 @keyframes ltAurora { to { opacity: .7; transform: translate3d(0, -2%, 0) scale(1.06); } }
 .lt-btn { background-image: linear-gradient(180deg, rgba(255,255,255,.18), transparent); }
 @media (prefers-reduced-motion: reduce) { .lt-cinematic::before { animation: none; } }
+
+/* ===== motion-graphic intro (motion.js) ===== */
+.lt-skip { position: absolute; z-index: 9; bottom: max(18px, env(safe-area-inset-bottom)); right: 16px; font: 600 .72rem/1 system-ui, sans-serif; letter-spacing: .16em; text-transform: uppercase; color: var(--onbg); background: color-mix(in srgb, var(--bg) 60%, transparent); border: 1px solid color-mix(in srgb, var(--onbg) 35%, transparent); border-radius: 99px; padding: .7rem 1.1rem; cursor: pointer; opacity: 0; animation: mgIn .6s 1.2s forwards; }
+.lt-skip:focus-visible { outline: 3px solid var(--a); outline-offset: 3px; }
+.mg { position: absolute; inset: 0; overflow: hidden; display: grid; place-content: center; justify-items: center; gap: 1rem; padding: 2rem 1.25rem; text-align: center; --e: cubic-bezier(.16,1,.3,1); }
+.mg > :not(.mg-s) { position: relative; z-index: 2; }
+.mg-small { margin: 0; font: 600 clamp(.72rem, 2.6vw, .95rem)/1.2 system-ui, sans-serif; letter-spacing: .38em; text-transform: uppercase; color: color-mix(in srgb, var(--a) 45%, var(--onbg)); opacity: 0; animation: mgIn .8s .15s var(--e) forwards, mgTrack 3s .15s var(--e) forwards; }
+.mg-title, .mg-name { margin: 0; font-weight: 700; line-height: 1.05; max-width: 14ch; font-size: clamp(2.6rem, 13vw, 6rem); overflow-wrap: anywhere; }
+.mg-name { font-size: clamp(2.2rem, 11vw, 5rem); color: var(--onbg); }
+.mg-title i, .mg-name i { display: inline-block; font-style: normal; opacity: 0; transform: translateY(70%) rotate(8deg) scale(.8); filter: blur(10px); animation: mgChar .9s calc(.25s + var(--i) * 55ms) var(--e) forwards; }
+.mg-title i { background: linear-gradient(180deg, var(--onbg), color-mix(in srgb, var(--a) 35%, var(--onbg))); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.mg-line { display: block; width: min(60vw, 280px); height: 2px; background: linear-gradient(90deg, transparent, var(--a), transparent); transform: scaleX(0); animation: mgLine 1.2s .9s var(--e) forwards; }
+.mg-words { margin: 0; max-width: 16ch; font-size: clamp(2rem, 9.5vw, 4rem); line-height: 1.15; font-weight: 600; }
+.mw { display: inline-block; overflow: hidden; vertical-align: top; padding: 0 .06em; }
+.mw b { display: inline-block; font-weight: inherit; opacity: 0; transform: translateY(105%) scale(1.15); filter: blur(8px); animation: mgWord .8s calc(.3s + var(--i) * 170ms) var(--e) forwards; }
+.mw:nth-child(3n+2) b { color: color-mix(in srgb, var(--a) 40%, var(--onbg)); font-style: italic; }
+/* photo montage: cards slide in on a parallax strip, each with a slow push-in */
+.mg-photos { place-content: center; }
+.mg-strip { display: grid; width: min(86vw, 460px); aspect-ratio: 4/5; position: relative; }
+.mg-strip figure { grid-area: 1/1; margin: 0; background: #fff; padding: 10px 10px 40px; border-radius: 3px; box-shadow: 0 30px 70px rgba(0,0,0,.55); opacity: 0; transform: translateX(120%) rotate(8deg); animation: mgCard 1.9s calc(var(--i) * 1.9s + .2s) var(--e) both; position: relative; }
+.mg-strip figure:nth-child(even) { --rot: -3deg; } .mg-strip figure:nth-child(odd) { --rot: 3deg; }
+.mg-strip img { width: 100%; height: 100%; object-fit: cover; display: block; animation: mgKen 5s linear both; animation-delay: calc(var(--i) * 1.9s + .2s); }
+.mg-strip figcaption { position: absolute; left: 10px; right: 10px; bottom: 8px; text-align: center; color: #3a332e; font-size: 1.05rem; line-height: 1.1; }
+.mg-strip figure:last-child { animation: mgCardLast 1.9s calc(var(--i) * 1.9s + .2s) var(--e) both; }
+/* animated backdrop shapes (dressed per engine below) */
+.mg-s { position: absolute; z-index: 1; pointer-events: none; opacity: 0; }
+.mg-envelope .mg-s { border: 2px solid color-mix(in srgb, var(--a) 70%, transparent); border-radius: 50%; width: 60vmin; aspect-ratio: 1; left: 50%; top: 50%; margin: -30vmin 0 0 -30vmin; animation: mgRing 4.2s var(--e) infinite; }
+.mg-envelope .s2 { animation-delay: .7s; } .mg-envelope .s3 { animation-delay: 1.4s; } .mg-envelope .s4, .mg-envelope .s5, .mg-envelope .s6 { width: 22vmin; margin: -11vmin 0 0 -11vmin; left: 12%; top: 82%; border-radius: 50% 0; background: color-mix(in srgb, var(--p) 55%, transparent); border: 0; animation: mgPetal 6s ease-in-out infinite; }
+.mg-envelope .s5 { left: 88%; top: 18%; animation-delay: 1.2s; } .mg-envelope .s6 { left: 80%; top: 90%; animation-delay: 2.4s; width: 14vmin; }
+.mg-giftbox .mg-s.s1 { inset: -50%; width: auto; background: repeating-conic-gradient(from 0deg, color-mix(in srgb, var(--a) 26%, transparent) 0 6deg, transparent 6deg 18deg); -webkit-mask: radial-gradient(circle, #000 0, transparent 62%); mask: radial-gradient(circle, #000 0, transparent 62%); animation: mgSpin 14s linear infinite, mgIn 1s forwards; }
+.mg-giftbox .s2, .mg-giftbox .s3 { left: -20%; right: -20%; height: 16vmin; top: 50%; margin-top: -8vmin; background: linear-gradient(90deg, transparent, var(--p), transparent); rotate: -18deg; animation: mgSweep 3.6s var(--e) infinite; }
+.mg-giftbox .s3 { background: linear-gradient(90deg, transparent, var(--a), transparent); animation-delay: .6s; height: 6vmin; }
+.mg-giftbox .s4, .mg-giftbox .s5, .mg-giftbox .s6 { width: 7vmin; aspect-ratio: 1; left: 20%; top: 80%; border-radius: 2px; background: var(--a); animation: mgRise 3.4s ease-out infinite; } .mg-giftbox .s5 { left: 70%; background: var(--p); animation-delay: .9s; border-radius: 50%; } .mg-giftbox .s6 { left: 46%; animation-delay: 1.7s; }
+.mg-cake .mg-s { width: 18vmin; aspect-ratio: 1; border-radius: 50%; background: var(--p); left: 10%; top: 85%; animation: mgBalloon 5s ease-in infinite; }
+.mg-cake .s2 { background: var(--a); left: 30%; animation-delay: .6s; width: 13vmin; } .mg-cake .s3 { left: 55%; animation-delay: 1.3s; } .mg-cake .s4 { background: var(--a); left: 75%; animation-delay: 1.9s; width: 22vmin; } .mg-cake .s5 { left: 90%; animation-delay: 2.5s; width: 11vmin; } .mg-cake .s6 { background: var(--a); left: 45%; animation-delay: 3.1s; width: 9vmin; }
+.mg-scrapbook .mg-s { width: 38vmin; height: 12vmin; left: 50%; top: 50%; background: color-mix(in srgb, var(--a) 70%, #fff); animation: mgTape 5s var(--e) infinite; }
+.mg-scrapbook .s1 { top: 14%; rotate: -8deg; } .mg-scrapbook .s2 { top: 86%; rotate: 6deg; animation-delay: .8s; background: color-mix(in srgb, var(--p) 55%, #fff); } .mg-scrapbook .s3 { left: 12%; top: 40%; rotate: 78deg; animation-delay: 1.6s; } .mg-scrapbook .s4 { left: 90%; top: 60%; rotate: -80deg; animation-delay: 2.2s; background: color-mix(in srgb, var(--p) 55%, #fff); } .mg-scrapbook .s5, .mg-scrapbook .s6 { display: none; }
+.mg-cinematic .mg-s { left: -30%; width: 160%; height: 2px; background: linear-gradient(90deg, transparent, var(--a), transparent); animation: mgStreak 3.6s var(--e) infinite; }
+.mg-cinematic .s1 { top: 22%; } .mg-cinematic .s2 { top: 36%; animation-delay: .5s; } .mg-cinematic .s3 { top: 64%; animation-delay: 1s; } .mg-cinematic .s4 { top: 78%; animation-delay: 1.5s; } .mg-cinematic .s5, .mg-cinematic .s6 { display: none; }
+.mg-cinematic .mg-title, .mg-cinematic .mg-name, .mg-cinematic .mg-words { animation: mgDrift 8s linear forwards; }
+.mg-scrapbook .mg-title, .mg-scrapbook .mg-name { font-weight: 800; rotate: -2deg; }
+@keyframes mgIn { to { opacity: 1; } }
+@keyframes mgTrack { from { letter-spacing: .1em; } to { letter-spacing: .38em; } }
+@keyframes mgChar { to { opacity: 1; transform: none; filter: none; } }
+@keyframes mgWord { to { opacity: 1; transform: none; filter: none; } }
+@keyframes mgLine { to { transform: scaleX(1); } }
+@keyframes mgRing { 0% { opacity: 0; transform: scale(.2); } 25% { opacity: .8; } 100% { opacity: 0; transform: scale(1.6); } }
+@keyframes mgPetal { 0%, 100% { opacity: 0; transform: translateY(20px) rotate(0) scale(.6); } 40% { opacity: .8; } 100% { transform: translateY(-40px) rotate(120deg) scale(1.1); } }
+@keyframes mgSpin { to { transform: rotate(360deg); } }
+@keyframes mgSweep { 0% { opacity: 0; transform: translateX(-60%); } 30% { opacity: .75; } 100% { opacity: 0; transform: translateX(60%); } }
+@keyframes mgRise { 0% { opacity: 0; transform: translateY(0) rotate(0); } 15% { opacity: .9; } 100% { opacity: 0; transform: translateY(-70vh) rotate(260deg); } }
+@keyframes mgBalloon { 0% { opacity: 0; transform: translateY(0) scale(.7); } 12% { opacity: .85; } 100% { opacity: 0; transform: translateY(-115vh) translateX(6vw) scale(1); } }
+@keyframes mgTape { 0% { opacity: 0; scale: .4 1; } 18%, 70% { opacity: .85; scale: 1; } 100% { opacity: 0; scale: 1 1; } }
+@keyframes mgStreak { 0% { opacity: 0; transform: translateX(-35%); } 30% { opacity: .9; } 100% { opacity: 0; transform: translateX(35%); } }
+@keyframes mgDrift { from { transform: scale(.94); } to { transform: scale(1.08); } }
+@keyframes mgCard { 0% { opacity: 0; transform: translateX(120%) rotate(10deg); } 40%, 85% { opacity: 1; transform: translateX(0) rotate(var(--rot, 2deg)); } 100% { opacity: 0; transform: translateX(-90%) rotate(-8deg); } }
+@keyframes mgCardLast { 0% { opacity: 0; transform: translateX(120%) rotate(10deg); } 40%, 100% { opacity: 1; transform: translateX(0) rotate(var(--rot, 2deg)); } }
+@keyframes mgKen { from { transform: scale(1); } to { transform: scale(1.12); } }

@@ -1,3 +1,4 @@
+import { motionIntro } from "./motion.js";
 /* Template engines. Each engine is an async function that tells one story using the player's context:
      ctx.scene(html, cls)  swap the visible scene          ctx.press(el)   wait for a button press
      ctx.type(el, text)    typing effect (tap to skip)     ctx.nextTap()   wait for a tap anywhere
@@ -59,7 +60,7 @@ export const ENGINES = {
     if (ctx.has("opening")) {
       const s = ctx.scene(`<div class="lt-center"><p class="lt-cap"></p><button class="env" type="button" aria-label="${ctx.t.open}"><i class="env-paper"></i><i class="env-front"></i><i class="env-flap"></i><i class="env-seal">♥</i></button><p class="lt-hint">${ctx.t.open}</p></div>`);
       s.querySelector(".lt-cap").textContent = coverTitle(ctx); ambient(ctx);
-      const b = s.querySelector(".env"); await ctx.press(b); b.classList.add("open"); s.querySelector(".lt-hint").style.opacity = 0; await ctx.wait(1500);
+      const b = s.querySelector(".env"); await ctx.press(b); b.classList.add("open"); s.querySelector(".lt-hint").style.opacity = 0; await ctx.wait(1500); await motionIntro(ctx);
     }
     if (ctx.alive()) await readLetter(ctx, "env-paper-style");
   },
@@ -69,7 +70,7 @@ export const ENGINES = {
       const s = ctx.scene(`<div class="lt-center"><p class="lt-cap"></p><button class="box" type="button" aria-label="${ctx.t.open}"><i class="box-card"></i><i class="box-body"></i><i class="box-lid"></i></button><p class="lt-hint">${ctx.t.open}</p></div>`);
       s.querySelector(".lt-cap").textContent = coverTitle(ctx); ambient(ctx);
       const b = s.querySelector(".box"); await ctx.press(b); b.classList.add("open"); s.querySelector(".lt-hint").style.opacity = 0;
-      await ctx.wait(350); if (ctx.has("confetti")) ctx.fx.confetti(110, .5, .5); await ctx.wait(1300);
+      await ctx.wait(350); if (ctx.has("confetti")) ctx.fx.confetti(110, .5, .5); await ctx.wait(1300); await motionIntro(ctx);
     }
     if (ctx.alive()) await readLetter(ctx, "card-style");
   },
@@ -80,7 +81,7 @@ export const ENGINES = {
       s.querySelector(".lt-cap").textContent = ctx.t.wish; if (ctx.c.to) s.querySelector(".lt-cap").textContent = `${ctx.c.to} — ${ctx.t.wish}`; ambient(ctx);
       const b = s.querySelector(".cake"); await ctx.press(b); b.classList.add("out"); s.querySelector(".lt-hint").style.opacity = 0;
       for (let i = 0; i < 7; i++) { const bl = el("i", "balloon"); bl.style.cssText = `--x:${8 + i * 13}%;--d:${i * 160}ms;--h:${i % 2 ? "var(--p)" : "var(--a)"}`; s.append(bl); }
-      if (ctx.has("confetti")) ctx.fx.confetti(120, .5, .55); await ctx.wait(2100);
+      if (ctx.has("confetti")) ctx.fx.confetti(120, .5, .55); await ctx.wait(2100); await motionIntro(ctx);
     }
     if (ctx.alive()) await readLetter(ctx, "card-style");
   },
@@ -90,7 +91,7 @@ export const ENGINES = {
     if (ctx.has("opening")) {
       const s = ctx.scene(`<div class="lt-center"><button class="book" type="button" aria-label="${t.open}"><i class="book-page"></i><i class="book-cover"><b></b><span></span><em></em></i></button><p class="lt-hint">${t.open}</p></div>`);
       s.querySelector(".book-cover b").textContent = c.title; s.querySelector(".book-cover span").textContent = c.to ? `${t.forYou} ${c.to}` : ""; s.querySelector(".book-cover em").textContent = c.from ? `— ${c.from}` : "";
-      const b = s.querySelector(".book"); await ctx.press(b); b.classList.add("open"); s.querySelector(".lt-hint").style.opacity = 0; await ctx.wait(1300);
+      const b = s.querySelector(".book"); await ctx.press(b); b.classList.add("open"); s.querySelector(".lt-hint").style.opacity = 0; await ctx.wait(1300); await motionIntro(ctx);
     }
     if (!ctx.alive()) return;
     const s = ctx.scene(`<div class="board"><h2 class="lt-title"></h2><div class="board-photos"></div><article class="paper note"><p class="lt-to"></p><div class="lt-body" aria-live="polite"></div><footer class="lt-sig" hidden></footer><div class="lt-actions" hidden></div></article></div>`, "scroll");
@@ -119,7 +120,7 @@ export const ENGINES = {
     ambient(ctx);
     if (ctx.has("opening")) {
       const s = ctx.scene(`<div class="lt-center"><p class="lt-cap"></p><h2 class="lt-big"></h2><button class="lt-btn" type="button">${t.begin}</button></div>`);
-      s.querySelector(".lt-cap").textContent = coverTitle(ctx); s.querySelector(".lt-big").textContent = c.title; await ctx.press(s.querySelector("button"));
+      s.querySelector(".lt-cap").textContent = coverTitle(ctx); s.querySelector(".lt-big").textContent = c.title; await ctx.press(s.querySelector("button")); await motionIntro(ctx);
     }
     const paras = c.message.split(/\n{2,}/).map((p) => p.trim()).filter(Boolean), photos = ctx.has("gallery") ? c.photos : [], total = paras.length + photos.length + 1;
     let i = 0;

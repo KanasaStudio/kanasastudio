@@ -36,3 +36,6 @@ Visitors pick a template, personalise it, preview it, and get a share link (`/le
 
 ## Visual references (v2)
 Palettes and layers were inspired by Canva references: bold botanical silhouettes on burgundy/blush (envelope), hand-drawn pastel party on cream (cake/giftbox), kraft scrapbook with washi tape, aurora night sky (cinematic). Per-template palettes live in migration `20261106000015_letter_palettes.sql`.
+
+## Motion-graphic intro (v2.1)
+`js/letter/motion.js` plays a skippable ~17–30 s kinetic-type sequence after the cover opens (title → recipient → message highlights word by word → photo montage → sender), dressed per engine by `.mg-<engine>` styles. Needs the `opening` effect, is off in quick/preview-step mode and for reduced-motion users, and has a "Lewati / Skip" button.

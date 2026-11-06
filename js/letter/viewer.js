@@ -1,6 +1,6 @@
 /* Public viewer for /letter/<id> (also used as the editor's live-preview iframe at /letter/#preview). */
-import { sb } from "../db.js?v=20261106b";
-import { createPlayer } from "./player.js?v=20261106b";
+import { sb } from "../db.js?v=20261106c";
+import { createPlayer } from "./player.js?v=20261106c";
 
 const host = document.getElementById("host"), msg = document.getElementById("msg");
 const player = createPlayer(host, { preview: location.hash === "#preview", makeUrl: "../#/letters" });

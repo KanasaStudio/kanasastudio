@@ -84,12 +84,15 @@ function mountPreview(host, getLetter) {
 const sampleContent = (t) => ({ ...(t.defaults || {}), from: "Seseorang yang sayang kamu", to: "Kamu", date: new Date().toISOString().slice(0, 10), photos: [] });
 function openPreview(slug) {
   const t = DATA?.tpls.find((x) => x.slug === slug); if (!t) return;
+  openModal(t.name, () => ({ engine: t.engine, content: sampleContent(t) }), `<a class="btn" href="#/letters/new/${esc(t.slug)}">Use this template</a>`);
+}
+function openModal(title, getLetter, footer) {
   closeModal(); const prev = document.activeElement;
-  const m = document.createElement("div"); m.className = "lt-modal"; m.setAttribute("role", "dialog"); m.setAttribute("aria-modal", "true"); m.setAttribute("aria-label", `Preview of ${t.name}`);
-  m.innerHTML = `<div class="lt-modal-in"><header><strong>${esc(t.name)}</strong>${segHtml("mobile")}<button type="button" class="btn ghost sm" data-ltact="replay">↺ Replay</button><button type="button" class="btn ghost sm" data-ltact="closemodal" aria-label="Close preview">✕</button></header>
-    <div class="lt-frame" data-mode="mobile"></div><footer><a class="btn" href="#/letters/new/${esc(t.slug)}">Use this template</a></footer></div>`;
+  const m = document.createElement("div"); m.className = "lt-modal"; m.setAttribute("role", "dialog"); m.setAttribute("aria-modal", "true"); m.setAttribute("aria-label", `Preview of ${title}`);
+  m.innerHTML = `<div class="lt-modal-in"><header><strong>${esc(title)}</strong>${segHtml("mobile")}<button type="button" class="btn ghost sm" data-ltact="replay">↺ Replay</button><button type="button" class="btn ghost sm" data-ltact="closemodal" aria-label="Close preview">✕</button></header>
+    <div class="lt-frame" data-mode="mobile"></div><footer>${footer}</footer></div>`;
   document.body.append(m); document.body.classList.add("lt-lock");
-  const pv = mountPreview($(".lt-frame", m), () => ({ engine: t.engine, content: sampleContent(t) }));
+  const pv = mountPreview($(".lt-frame", m), getLetter);
   MODAL = { m, pv, prev }; m.addEventListener("click", (e) => { if (e.target === m) closeModal(); });
   m.addEventListener("keydown", trap); $("[data-ltact=closemodal]", m).focus();
 }
@@ -131,7 +134,8 @@ function shell() {
   return `<div class="container page lt-ed" id="lted" data-step="${ED.step}"><a class="back-link" href="${edit ? "#/letters/mine" : "#/letters"}">← ${edit ? "My letters" : "All templates"}</a>
     <h1 class="lt-ed-h">${edit ? "Edit your letter" : esc(ED.tpl.name)}</h1><ol class="lt-steps" id="ltsteps" aria-label="Steps"></ol>
     <div class="lt-ed-grid"><div class="lt-ed-form" id="ltform" tabindex="-1"></div>
-    <aside class="lt-ed-prev" aria-label="Live preview"><div class="lt-prev-bar">${segHtml("mobile")}<button type="button" class="btn ghost sm" data-ltact="replay">↺ Replay</button></div><div class="lt-frame" id="ltframe" data-mode="mobile"></div><p class="muted lt-prev-note">${ED.step === 2 ? "Quick preview while you type. Step 4 plays the whole experience." : "Tap the preview to try every interaction."}</p></aside></div></div>`;
+    <aside class="lt-ed-prev" aria-label="Live preview"><div class="lt-prev-bar">${segHtml("mobile")}<button type="button" class="btn ghost sm" data-ltact="replay">↺ Replay</button></div><div class="lt-frame" id="ltframe" data-mode="mobile"></div><p class="muted lt-prev-note">${ED.step === 2 ? "Quick preview while you type. Step 4 plays the whole experience." : "Tap the preview to try every interaction."}</p></aside></div>
+    <button type="button" class="btn lt-fab" data-ltact="livepreview" aria-label="Open full-screen preview">▶ Preview</button></div>`;
 }
 function renderSteps() {
   const edit = ED.mode === "edit";
@@ -279,9 +283,10 @@ async function onClick(e) {
   const b = e.target.closest("[data-ltact]"); if (!b) return; const a = b.dataset.ltact, v = b.dataset.v;
   if (a === "fcat" || a === "ftag" || a === "fprice") { F[{ fcat: "cat", ftag: "tag", fprice: "price" }[a]] = v; $("#ltfilters").innerHTML = filters(); $("#ltgrid").innerHTML = grid(); return; }
   if (a === "preview") return openPreview(b.dataset.slug);
+  if (a === "livepreview") return openModal(ED.tpl?.name || "Your letter", letterOf, `<button type="button" class="btn" data-ltact="closemodal">Back to editing</button>`);
   if (a === "closemodal") return closeModal();
   if (a === "replay") return (MODAL ? MODAL.pv : PV)?.send(MODAL ? false : ED?.step === 2);
-  if (a === "mode") { const host = b.closest(".lt-modal, .lt-ed-prev"); $(".lt-frame", host).dataset.mode = v; $$("[data-ltact=mode]", host).forEach((x) => x.setAttribute("aria-pressed", x === b)); return; }
+  if (a === "mode") { const host = b.closest(".lt-modal, .lt-ed-prev"); $(".lt-frame", host).dataset.mode = v; $$("[data-ltact=mode]", host).forEach((x) => x.setAttribute("aria-pressed", x === b)); if (host.classList.contains("lt-ed-prev")) $("#lted").dataset.wide = v === "desktop" ? "1" : ""; return; }
   if (a === "copy") { try { await navigator.clipboard.writeText(v); toast("Copied.", "ok"); } catch { toast("Select the link and copy it manually."); } return; }
   if (a === "share") { try { await navigator.share({ title: "A gift for you", text: "I made something for you.", url: v }); } catch { /* cancelled */ } return; }
   if (a === "mdel" || a === "mvis") return mineAction(a, b);

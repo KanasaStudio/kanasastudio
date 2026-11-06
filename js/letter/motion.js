@@ -19,6 +19,7 @@ export async function motionIntro(ctx) {
     const ws = c.message.replace(/\s+/g, " ").trim().split(" "), chunks = [];
     for (let i = 0; i < ws.length && chunks.length < 3; i += 9) chunks.push(ws.slice(i, i + 9).join(" "));
     for (const [k, ch] of chunks.entries()) await beat("words", `<p class="mg-small">${k === 0 ? esc(t.words) : "&nbsp;"}</p><p class="mg-words">${words(ch)}</p>`, 2600 + ch.length * 55, "tick");
+    for (const g of (c.gifs || []).filter((x) => x.place !== "letter")) await beat("gif", `<figure class="mg-gif"><img alt="" src="${esc(g.url)}"></figure>`, 3400, "reveal");
     const ph = ctx.has("gallery") ? c.photos.slice(0, 4) : [];
     if (ph.length && !skipped && ctx.alive()) {
       ctx.sfx("reveal");

@@ -17,6 +17,13 @@ function ambient(ctx) {
 function lightbox(root, url, alt) {
   const o = el("div", "lt-lightbox"); const i = el("img"); i.src = url; i.alt = alt || ""; o.append(i); o.onclick = () => o.remove(); root.append(o);
 }
+/* GIF stickers: animated images dropped in by the sender (content.gifs, place = intro | letter | both) */
+function gifsFor(ctx, where) { return (ctx.c.gifs || []).filter((g) => g.place === "both" || g.place === where); }
+function gifRow(ctx, host) {
+  const g = gifsFor(ctx, "letter"); if (!g.length) return;
+  const row = el("div", "lt-gifs"); g.forEach((x, i) => { const f = el("figure", "lt-gif"); f.style.setProperty("--r", `${((i * 5) % 7) - 3}deg`); f.style.setProperty("--d", `${i * 160}ms`); const im = el("img"); im.src = x.url; im.alt = ""; im.loading = "lazy"; f.append(im); row.append(f); });
+  host.append(row); requestAnimationFrame(() => row.classList.add("show"));
+}
 function polaroids(ctx, host, cls = "") {
   ctx.sfx("reveal"); const wrap = el("div", `lt-gal ${cls}`); wrap.setAttribute("aria-label", ctx.t.memories);
   ctx.c.photos.forEach((p, i) => {
@@ -38,6 +45,7 @@ async function readLetter(ctx, cls = "") {
   if (!ctx.alive()) return;
   const sig = s.querySelector(".lt-sig"); sig.hidden = false;
   sig.append(el("span", "lt-w", t.withLove), el("strong", "", c.from || ""), ...(c.date ? [el("small", "", fmt(c.date, c.lang))] : []));
+  if (gifsFor(ctx, "letter").length) { await ctx.wait(400); ctx.sfx("reveal"); gifRow(ctx, s.querySelector(".lt-extra")); s.scrollTo({ top: s.scrollHeight, behavior: "smooth" }); await ctx.wait(600); }
   if (ctx.has("gallery") && c.photos.length) { await ctx.wait(500); polaroids(ctx, s.querySelector(".lt-extra")); s.scrollTo({ top: s.scrollHeight, behavior: "smooth" }); await ctx.wait(400 + c.photos.length * 140); }
   const act = s.querySelector(".lt-actions"); act.hidden = false;
   if (ctx.has("closing")) { const b = el("button", "lt-btn", t.next); b.type = "button"; act.append(b); await ctx.press(b); if (ctx.alive()) await closing(ctx); }
@@ -96,6 +104,7 @@ export const ENGINES = {
     if (!ctx.alive()) return;
     const s = ctx.scene(`<div class="board"><h2 class="lt-title"></h2><div class="board-photos"></div><article class="paper note"><p class="lt-to"></p><div class="lt-body" aria-live="polite"></div><footer class="lt-sig" hidden></footer><div class="lt-actions" hidden></div></article></div>`, "scroll");
     s.querySelector(".lt-title").textContent = c.title; s.querySelector(".lt-to").textContent = c.to ? `${t.forYou} ${c.to},` : ""; ambient(ctx);
+    gifRow(ctx, s.querySelector(".board-photos"));
     if (ctx.has("gallery") && c.photos.length) polaroids(ctx, s.querySelector(".board-photos"), "scatter");
     const body = s.querySelector(".lt-body"), note = s.querySelector(".note");
     if (ctx.has("typing") && s.querySelector(".board-photos .pol")) { // typed when the note scrolls into view
@@ -133,6 +142,10 @@ export const ENGINES = {
       if (!ctx.alive()) return;
       const s = ctx.scene(`<div class="lt-center slide ph"><figure><img alt=""><figcaption></figcaption></figure>${dots(total, i++)}</div>`);
       const im = s.querySelector("img"); im.src = ph.url; im.alt = ph.caption || ""; s.querySelector("figcaption").textContent = ph.caption; await Promise.race([ctx.wait(4200), ctx.nextTap()]);
+    }
+    for (const g of gifsFor(ctx, "letter")) {
+      if (!ctx.alive()) return;
+      const s = ctx.scene(`<div class="lt-center slide ph gif"><figure><img alt=""></figure></div>`); s.querySelector("img").src = g.url; await Promise.race([ctx.wait(3600), ctx.nextTap()]);
     }
     if (!ctx.alive()) return;
     ctx.sfx("end"); const s = ctx.scene(`<div class="lt-center slide closing"><p class="lt-w">${t.withLove}</p><h2 class="lt-big"></h2><small class="lt-date"></small><div class="lt-actions"></div>${dots(total, total)}</div>`);

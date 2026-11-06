@@ -39,3 +39,6 @@ Palettes and layers were inspired by Canva references: bold botanical silhouette
 
 ## Motion-graphic intro (v2.1)
 `js/letter/motion.js` plays a skippable ~17–30 s kinetic-type sequence after the cover opens (title → recipient → message highlights word by word → photo montage → sender), dressed per engine by `.mg-<engine>` styles. Needs the `opening` effect, is off in quick/preview-step mode and for reduced-motion users, and has a "Lewati / Skip" button.
+
+## Custom GIF stickers
+Editor step 2 → "GIF stickers": the sender uploads their own GIF / animated WebP / PNG (≤ 5 MB, stored as-is in `letter-media` so the animation survives; photos are re-encoded to JPG, GIFs are not). 3 per letter, 6 with the Gallery add-on. Each GIF has a placement: intro / letter / both. Intro GIFs pop in as a motion-graphic beat; letter GIFs appear as stickers under the message (cinematic: a slide). Stored in `content.gifs = [{url, place}]`, validated by `letter_clean` (migration `20261106000016_letter_gifs.sql`: only own-bucket URLs ending .gif/.webp/.png).

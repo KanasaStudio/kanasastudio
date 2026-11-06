@@ -86,6 +86,7 @@ export function normalize(c = {}) {
     theme: { primary: hexOk(th.primary, "#8b1e3f"), accent: hexOk(th.accent, "#e8b4b8"), bg: hexOk(th.bg, "#1a0d12"), paper: hexOk(th.paper, "#fbf3ea") },
     effects: arr(c.effects).map(String), decor: arr(c.decor).map(String),
     photos: arr(c.photos).filter((p) => okUrl(p?.url)).map((p) => ({ url: p.url, caption: String(p.caption || "").slice(0, 80) })).slice(0, 12),
+    gifs: arr(c.gifs).filter((g) => okUrl(g?.url)).map((g) => ({ url: g.url, place: ["intro", "letter", "both"].includes(g.place) ? g.place : "both" })).slice(0, 6),
     music: c.music && okUrl(c.music.url) ? { url: c.music.url, title: String(c.music.title || "") } : null,
   };
 }

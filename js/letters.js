@@ -103,6 +103,7 @@ const segHtml = (mode) => `<div class="seg" role="group" aria-label="Preview siz
 /* ---------- editor state ---------- */
 const optFx = () => (ED.tpl?.options?.effects?.length ? ED.tpl.options.effects : Object.keys(FXL));
 const optDec = () => (ED.tpl?.options?.decor?.length ? ED.tpl.options.decor : Object.keys(DECL));
+const maxGifs = () => (ED.addons.has("gallery") ? 6 : 3);
 const maxPhotos = () => (ED.addons.has("gallery") ? 12 : 3);
 const plan = () => DATA.plans.find((p) => p.id === ED.planId);
 function price() {
@@ -117,7 +118,7 @@ function newState(t) {
   const free = DATA.plans.find((p) => +p.price_idr === 0) || DATA.plans[0];
   return { mode: "new", tpl: t, step: 2, addons: new Set(draft?.addons || []), planId: draft?.planId && DATA.plans.some((p) => p.id === draft.planId) ? draft.planId : free?.id, visibility: "public", contact: store.get("kns_ltcontact", ""), busy: "", result: null,
     c: draft?.c || { from: store.get("kns_ltname", ""), to: "", title: d.title || "", message: d.message || "", date: "", lang: d.lang || "id", font: d.font || "serif",
-      theme: { primary: hex(th.primary, "#8b1e3f"), accent: hex(th.accent, "#e8b4b8"), bg: hex(th.bg, "#1a0d12"), paper: hex(th.paper, "#fbf3ea") }, effects: [...(d.effects || [])], decor: [...(d.decor || [])], photos: [], music: null } };
+      theme: { primary: hex(th.primary, "#8b1e3f"), accent: hex(th.accent, "#e8b4b8"), bg: hex(th.bg, "#1a0d12"), paper: hex(th.paper, "#fbf3ea") }, effects: [...(d.effects || [])], decor: [...(d.decor || [])], photos: [], gifs: [], music: null } };
 }
 const letterOf = () => ({ engine: ED.tpl?.engine || ED.engine || "envelope", content: ED.c });
 let saveT = 0, sendT = 0;
@@ -168,6 +169,10 @@ function s2() {
     <div class="lt-photos">${photos.map((p, i) => `<div class="lt-ph"><img src="${esc(p.url)}" alt="Photo ${i + 1}"><input class="input" data-ed="photos.${i}.caption" value="${esc(p.caption)}" maxlength="80" placeholder="Caption (optional)" aria-label="Caption for photo ${i + 1}"><div class="lt-ph-act"><button type="button" class="btn ghost sm" data-ltact="phmove" data-v="${i}:-1" aria-label="Move photo ${i + 1} earlier" ${i ? "" : "disabled"}>←</button><button type="button" class="btn ghost sm" data-ltact="phmove" data-v="${i}:1" aria-label="Move photo ${i + 1} later" ${i < photos.length - 1 ? "" : "disabled"}>→</button><button type="button" class="btn ghost sm" data-ltact="phdel" data-v="${i}" aria-label="Remove photo ${i + 1}">Remove</button></div></div>`).join("")}</div>
     ${left > 0 ? `<label class="btn ghost sm lt-up">${ED.busy === "photo" ? "Uploading…" : "Add photos"}<input type="file" id="ltf-photos" accept="image/jpeg,image/png,image/webp,image/gif" multiple hidden ${ED.busy ? "disabled" : ""}></label>` : `<p class="muted">${ED.addons.has("gallery") ? "You reached the 12 photo limit." : "Free letters hold 3 photos."}</p>`}
     ${!ED.addons.has("gallery") && gal && ED.mode === "new" ? addonBox(gal) : ""}<small class="muted">Photos are resized on your device before upload.</small></fieldset>
+   <fieldset class="lt-set"><legend>GIF stickers <small class="muted">${(c.gifs || []).length}/${maxGifs()}</small></legend>
+    <div class="lt-photos">${(c.gifs || []).map((g, i) => `<div class="lt-ph"><img src="${esc(g.url)}" alt="GIF ${i + 1}"><select class="input" data-ed="gifs.${i}.place" aria-label="Where GIF ${i + 1} appears"><option value="both" ${g.place === "both" ? "selected" : ""}>Intro + letter</option><option value="intro" ${g.place === "intro" ? "selected" : ""}>Intro only</option><option value="letter" ${g.place === "letter" ? "selected" : ""}>Letter only</option></select><div class="lt-ph-act"><button type="button" class="btn ghost sm" data-ltact="gifdel" data-v="${i}" aria-label="Remove GIF ${i + 1}">Remove</button></div></div>`).join("")}</div>
+    ${(c.gifs || []).length < maxGifs() ? `<label class="btn ghost sm lt-up">${ED.busy === "gif" ? "Uploading…" : "Upload GIF"}<input type="file" id="ltf-gifs" accept="image/gif,image/webp,image/png" multiple hidden ${ED.busy ? "disabled" : ""}></label>` : `<p class="muted">You reached the ${maxGifs()} GIF limit.</p>`}
+    <small class="muted">Your own GIF / animated WebP, max 5 MB each. They play in the intro and under the letter.</small></fieldset>
    <fieldset class="lt-set"><legend>Background music <small class="muted">optional</small></legend>
     ${mus && ED.mode === "new" ? addonBox(mus) : ""}
     ${ED.addons.has("music") ? (c.music ? `<p class="lt-music">♪ ${esc(c.music.title || "Audio")} <button type="button" class="btn ghost sm" data-ltact="musicdel">Remove</button></p>` : `<label class="btn ghost sm lt-up">${ED.busy === "music" ? "Uploading…" : "Upload audio (MP3/M4A, max 5 MB)"}<input type="file" id="ltf-music" accept="audio/mpeg,audio/mp4,audio/ogg,audio/wav" hidden ${ED.busy ? "disabled" : ""}></label>`) : ""}</fieldset>
@@ -266,6 +271,17 @@ async function addPhotos(files) {
     }
   } finally { ED.busy = ""; changed(true); }
 }
+async function addGifs(files) {
+  ED.c.gifs = ED.c.gifs || []; ED.busy = "gif"; renderStep();
+  try {
+    for (const f of files) {
+      if (ED.c.gifs.length >= maxGifs()) { toast(`Up to ${maxGifs()} GIFs.`); break; }
+      const ext = { "image/gif": "gif", "image/webp": "webp", "image/png": "png" }[f.type]; if (!ext) { toast(`"${f.name}" is not a GIF.`); continue; }
+      if (f.size > 5 * 1048576) { toast(`"${f.name}" is larger than 5 MB.`); continue; }
+      try { ED.c.gifs.push({ url: await upload(f, ext, f.type), place: "both" }); } catch (e) { toast(e?.message || "Upload failed."); }
+    }
+  } finally { ED.busy = ""; changed(true); }
+}
 async function addMusic(f) {
   if (!f) return; if (f.size > 5 * 1048576) return toast("Audio must be 5 MB or smaller.");
   const ext = { "audio/mpeg": "mp3", "audio/mp4": "m4a", "audio/ogg": "ogg", "audio/wav": "wav" }[f.type]; if (!ext) return toast("Use an MP3, M4A, OGG or WAV file.");
@@ -295,6 +311,7 @@ async function onClick(e) {
   if (a === "font") { ED.c.font = v; return changed(true); }
   if (a === "phdel") { ED.c.photos.splice(+v, 1); return changed(true); }
   if (a === "phmove") { const [i, d] = v.split(":").map(Number), p = ED.c.photos; if (p[i + d]) { [p[i], p[i + d]] = [p[i + d], p[i]]; changed(true); } return; }
+  if (a === "gifdel") { ED.c.gifs.splice(+v, 1); return changed(true); }
   if (a === "musicdel") { ED.c.music = null; return changed(true); }
   if (a === "publish") return publish();
   if (a === "save") return saveEdit();
@@ -302,6 +319,7 @@ async function onClick(e) {
 function onInput(e) {
   const t = e.target; if (!ED || !t.closest?.("#lted")) return;
   if (t.id === "ltf-photos" && e.type === "change") { const fs = [...t.files]; t.value = ""; return addPhotos(fs); }
+  if (t.id === "ltf-gifs" && e.type === "change") { const fs = [...t.files]; t.value = ""; return addGifs(fs); }
   if (t.id === "ltf-music" && e.type === "change") { const f = t.files[0]; t.value = ""; return addMusic(f); }
   if (t.dataset.ed) { let v = t.value; setPath(ED.c, t.dataset.ed, v); if (t.dataset.ed === "message") { const n = $("#ltcount"); if (n) n.textContent = `${v.length}/4000`; } return changed(e.type === "change" && t.dataset.ed === "lang"); }
   if (t.dataset.edList) { const arr = ED.c[t.dataset.edList], i = arr.indexOf(t.value); if (t.checked && i < 0) arr.push(t.value); if (!t.checked && i >= 0) arr.splice(i, 1); changed(false); if (ED.step === 3) PV?.send(false); return; }
@@ -333,7 +351,7 @@ function normalizeC(c, t) {
   const d = t?.defaults?.theme || {};
   return { from: c.from || "", to: c.to || "", title: c.title || "", message: c.message || "", date: c.date || "", lang: c.lang || "id", font: c.font || "serif",
     theme: { primary: hex(c.theme?.primary, hex(d.primary, "#8b1e3f")), accent: hex(c.theme?.accent, hex(d.accent, "#e8b4b8")), bg: hex(c.theme?.bg, hex(d.bg, "#1a0d12")), paper: hex(c.theme?.paper, hex(d.paper, "#fbf3ea")) },
-    effects: c.effects || [], decor: c.decor || [], photos: c.photos || [], music: c.music || null };
+    effects: c.effects || [], decor: c.decor || [], photos: c.photos || [], gifs: c.gifs || [], music: c.music || null };
 }
 
 /* ---------- my letters ---------- */

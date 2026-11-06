@@ -22,6 +22,9 @@ function loadFont(key) {
   const f = FONTS[key]; if (!f || loaded.has(key)) return; loaded.add(key);
   const l = document.createElement("link"); l.rel = "stylesheet"; l.href = `https://fonts.googleapis.com/css2?family=${f[1]}&display=swap`; document.head.append(l);
 }
+const SKINS = ["meadow", "roses", "sakura", "bold", "gold", "lineart"];
+let skinCss = false;
+function loadSkins() { if (skinCss) return; skinCss = true; const l = document.createElement("link"); l.rel = "stylesheet"; l.href = new URL("../../css/letter-skins.css?v=20261106g", import.meta.url).href; document.head.append(l); }
 const okUrl = (u) => (/^https:\/\//i.test(u || "") ? u : "");
 
 export function createPlayer(host, { preview = false, makeUrl = "../#/letters" } = {}) {
@@ -38,6 +41,7 @@ export function createPlayer(host, { preview = false, makeUrl = "../#/letters" }
     root.style.setProperty("--ink", lum(th.paper) > .45 ? "#2b2320" : "#f5efe8"); root.style.setProperty("--onbg", lum(th.bg) > .45 ? "#2b2320" : "#f7f2ec");
     root.style.setProperty("--onp", lum(th.primary) > .45 ? "#2b2320" : "#ffffff"); root.style.setProperty("--font", FONTS[c.font][0]);
     root.dataset.decor = c.decor.join(" ");
+    if (c.skin) { root.dataset.skin = c.skin; loadSkins(); const dc = document.createElement("div"); dc.className = "lt-deco"; dc.setAttribute("aria-hidden", "true"); dc.innerHTML = "<i class=d1></i><i class=d2></i><i class=d3></i><i class=d4></i>"; root.append(dc); }
     const stage = document.createElement("div"); stage.className = "lt-stage"; root.append(stage); host.append(root);
     fx = createFx(root, () => [th.primary, th.accent, "#ffffff", th.paper], reduced, { lite: preview });
     if (letter.quick) c.effects = c.effects.filter((e) => !["opening", "typing", "closing"].includes(e));
@@ -84,6 +88,7 @@ export function normalize(c = {}) {
     from: String(c.from || "").slice(0, 60), to: String(c.to || "").slice(0, 60), title: String(c.title || "").slice(0, 120), message: String(c.message || "").slice(0, 4000),
     date: /^\d{4}-\d{2}-\d{2}$/.test(c.date || "") ? c.date : "", lang: c.lang === "en" ? "en" : "id", font: FONTS[c.font] ? c.font : "serif",
     theme: { primary: hexOk(th.primary, "#8b1e3f"), accent: hexOk(th.accent, "#e8b4b8"), bg: hexOk(th.bg, "#1a0d12"), paper: hexOk(th.paper, "#fbf3ea") },
+    skin: SKINS.includes(c.skin) ? c.skin : "",
     effects: arr(c.effects).map(String), decor: arr(c.decor).map(String),
     photos: arr(c.photos).filter((p) => okUrl(p?.url)).map((p) => ({ url: p.url, caption: String(p.caption || "").slice(0, 80) })).slice(0, 12),
     gifs: arr(c.gifs).filter((g) => okUrl(g?.url)).map((g) => ({ url: g.url, place: ["intro", "letter", "both"].includes(g.place) ? g.place : "both" })).slice(0, 6),

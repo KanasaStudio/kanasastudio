@@ -45,3 +45,6 @@ Editor step 2 → "GIF stickers": the sender uploads their own GIF / animated We
 
 ## Performance notes
 Particles run at 0.55× speed (`SPEED` in fx.js). The editor preview iframe uses lite mode (`.lt-lite`, 1× canvas, fewer particles). Avoided on purpose: blend-mode overlays, animated blur/drop-shadow filters, masked rotating layers, large animated box-shadows.
+
+## Skins & the Love variants
+`content.skin` (meadow, roses, sakura, bold, gold, lineart; whitelisted in `letter_clean`) adds floral/ornament art around any engine: corner garlands, flowers floating through the motion intro, paper corner sprigs. Art is generated as inline SVG by `python3 scripts/gen-skins.py` into `css/letter-skins.css` (lazy-loaded only when a letter has a skin; references: Canva wildflower watercolor, vintage roses + gold foil, sakura). Love templates added in migration `20261106000017_love_skins.sql`: Wildflower Letter, Vintage Roses, Sakura Dream, Peony Box, Golden Night, Botanical Lines. To add a skin: add a generator block, whitelist it in `letter_clean` and `SKINS` (player.js), add layout rules in `letter.css`.

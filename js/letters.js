@@ -118,7 +118,7 @@ function newState(t) {
   const free = DATA.plans.find((p) => +p.price_idr === 0) || DATA.plans[0];
   return { mode: "new", tpl: t, step: 2, addons: new Set(draft?.addons || []), planId: draft?.planId && DATA.plans.some((p) => p.id === draft.planId) ? draft.planId : free?.id, visibility: "public", contact: store.get("kns_ltcontact", ""), busy: "", result: null,
     c: draft?.c || { from: store.get("kns_ltname", ""), to: "", title: d.title || "", message: d.message || "", date: "", lang: d.lang || "id", font: d.font || "serif",
-      theme: { primary: hex(th.primary, "#8b1e3f"), accent: hex(th.accent, "#e8b4b8"), bg: hex(th.bg, "#1a0d12"), paper: hex(th.paper, "#fbf3ea") }, effects: [...(d.effects || [])], decor: [...(d.decor || [])], photos: [], gifs: [], music: null } };
+      theme: { primary: hex(th.primary, "#8b1e3f"), accent: hex(th.accent, "#e8b4b8"), bg: hex(th.bg, "#1a0d12"), paper: hex(th.paper, "#fbf3ea") }, effects: [...(d.effects || [])], decor: [...(d.decor || [])], photos: [], gifs: [], skin: d.skin || "", music: null } };
 }
 const letterOf = () => ({ engine: ED.tpl?.engine || ED.engine || "envelope", content: ED.c });
 let saveT = 0, sendT = 0;
@@ -351,7 +351,7 @@ function normalizeC(c, t) {
   const d = t?.defaults?.theme || {};
   return { from: c.from || "", to: c.to || "", title: c.title || "", message: c.message || "", date: c.date || "", lang: c.lang || "id", font: c.font || "serif",
     theme: { primary: hex(c.theme?.primary, hex(d.primary, "#8b1e3f")), accent: hex(c.theme?.accent, hex(d.accent, "#e8b4b8")), bg: hex(c.theme?.bg, hex(d.bg, "#1a0d12")), paper: hex(c.theme?.paper, hex(d.paper, "#fbf3ea")) },
-    effects: c.effects || [], decor: c.decor || [], photos: c.photos || [], gifs: c.gifs || [], music: c.music || null };
+    effects: c.effects || [], decor: c.decor || [], photos: c.photos || [], gifs: c.gifs || [], skin: c.skin || "", music: c.music || null };
 }
 
 /* ---------- my letters ---------- */

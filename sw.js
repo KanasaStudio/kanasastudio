@@ -2,7 +2,7 @@
    - App files, last-seen data (services, portfolio, store, tools, news, settings) and viewed images are kept on the device,
      so those pages open without a connection. Online, the network always wins (fresh content), the cache is the fallback.
    - Never cached: /admin/, anything with a signed-in user's token, orders/payments/uploads (they are POSTs anyway), videos. */
-const V = "20261103a";
+const V = "20261105a";
 const SHELL = `kns-${V}-shell`, API = `kns-${V}-api`, MEDIA = `kns-${V}-media`, LIB = "kns-lib";
 const KEEP = [SHELL, API, MEDIA, LIB];
 const SB_HOST = "geroipkbzmbkigzwjdok.supabase.co";
@@ -52,7 +52,7 @@ self.addEventListener("fetch", (e) => {
   const req = e.request; if (req.method !== "GET") return;
   const url = new URL(req.url);
   if (url.origin === location.origin) {
-    if (!url.pathname.startsWith(ROOT) || url.pathname.startsWith(ROOT + "admin/") || url.pathname.startsWith(ROOT + "share/")) return;
+    if (!url.pathname.startsWith(ROOT) || url.pathname.startsWith(ROOT + "admin/") || url.pathname.startsWith(ROOT + "share/") || url.pathname.startsWith(ROOT + "letter/")) return;
     if (/\.(mp4|webm|mov|mp3|ogg|wav|m4a)$/i.test(url.pathname) || req.headers.has("range")) return;
     if (req.mode === "navigate") return e.respondWith(networkFirst(new Request(ROOT + "index.html"), SHELL, 3500).catch(() => new Response("You are offline and this page has not been saved yet.", { status: 503, headers: { "Content-Type": "text/plain" } })));
     return e.respondWith(url.searchParams.has("v") ? cacheFirst(req, SHELL).catch(() => networkFirst(req, SHELL, 3500)) : networkFirst(req, SHELL, 3500));

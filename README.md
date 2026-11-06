@@ -32,3 +32,6 @@ Amounts are computed server-side. Setup guide: `docs/PAYMENTS.md` (also in Admin
 ## Not implemented yet (deliberately)
 Automatic payment gateway (Midtrans/Xendit), email/Discord notifications, client accounts/portal, delivery-file workflow, bot challenge (e.g. Turnstile via Edge Function),
 and per-route SEO crawlability (hash routing). None of these are claimed in the UI.
+
+## Digital Letters
+Interactive digital letters and gifts (templates, editor, share link, QR, admin, pricing). See `docs/LETTERS.md`.

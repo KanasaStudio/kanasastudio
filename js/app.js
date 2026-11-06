@@ -4,9 +4,10 @@ import { applyTheme } from "./theme.js";
 import { getRate } from "./fx.js";
 import * as cart from "./cart.js";
 import { initSfx, play as sfx } from "./sfx.js";
-import { initPreviews } from "./preview.js?v=20261103a";
-import { initOffline, warmOffline } from "./offline.js?v=20261103a";
-import { initNews, viewNews, newsStrip, warmNews } from "./news.js?v=20261103a";
+import { initPreviews } from "./preview.js?v=20261105a";
+import { initLetters, viewLetters, wireLetters, lettersStrip, warmLetters } from "./letters.js?v=20261105a";
+import { initOffline, warmOffline } from "./offline.js?v=20261105a";
+import { initNews, viewNews, newsStrip, warmNews } from "./news.js?v=20261105a";
 
 const S = {
   settings: {}, services: null, projects: null,
@@ -18,6 +19,7 @@ const app = $("#app");
 const set = (k, d = {}) => S.settings[k] ?? d;
 const cur = () => set("order").currency || "IDR";
 initNews({ setMeta, observe, set });
+initLetters({ setMeta, set });
 
 /* ---------- display currency (live USD conversion, display only) ---------- */
 S.fx = { rate: null, at: null, mode: store.get("kns_cur", "IDR") };
@@ -53,7 +55,8 @@ async function loadProjects(force) {
 function renderChrome() {
   const b = set("brand"), nav = set("nav", []), f = set("footer"), soc = set("socials", []);
   $("#brand").innerHTML = `<img src="${esc(safeUrl(b.logo_url))}" alt="" width="30" height="30"><span>${esc(b.name || "Studio")}${b.partner ? ` <small>× ${esc(b.partner)}</small>` : ""}</span>`;
-  $("#nav").innerHTML = (Array.isArray(nav) ? nav : []).map((n) => `<a href="${esc(safeUrl(n.href))}">${esc(n.label)}</a>`).join("") + `<div class="nav-fx"><span class="muted">Currency</span><div class="seg" id="fx2" role="group" aria-label="Display currency" hidden><button data-cur="IDR" aria-pressed="true">IDR</button><button data-cur="USD" aria-pressed="false">USD</button></div></div>`;
+  const navL = Array.isArray(nav) ? [...nav] : []; if (!navL.some((n) => n.href === "#/letters")) navL.push({ href: "#/letters", label: "Letters" });
+  $("#nav").innerHTML = navL.map((n) => `<a href="${esc(safeUrl(n.href))}">${esc(n.label)}</a>`).join("") + `<div class="nav-fx"><span class="muted">Currency</span><div class="seg" id="fx2" role="group" aria-label="Display currency" hidden><button data-cur="IDR" aria-pressed="true">IDR</button><button data-cur="USD" aria-pressed="false">USD</button></div></div>`;
   const lg = set("legal", {});
   $("#footer-links").innerHTML = Object.entries(lg).map(([k, l]) => `<li><a href="#/legal/${esc(k)}">${esc(l.title)}</a></li>`).join("") + soc.map((s) => `<li><a href="${esc(safeUrl(s.url))}" target="_blank" rel="noopener noreferrer">${esc(s.label)}</a></li>`).join("");
   $("#footer-text").textContent = f.text || "";
@@ -140,6 +143,7 @@ const SECTIONS = {
     return `<section class="section"><div class="container"><div class="section-head"><span class="eyebrow">Tools</span><h2>Handy creator tools</h2><a class="btn ghost sm" href="#/resources">All tools</a></div><div class="rgrid">${use.map((r) => resCard(r, cats)).join("")}</div></div></section>`;
   },
   async news() { try { return await newsStrip(); } catch { return ""; } },
+  async letters() { try { return await lettersStrip(); } catch { return ""; } },
   testimonials() {
     const t = (set("testimonials", []) || []).filter((x) => x.quote);
     if (!t.length) return "";
@@ -177,7 +181,8 @@ async function viewHome() {
   setMeta("");
   const parts = [];
   const SZ = ["sm", "lg"], WD = ["narrow", "wide", "full"];
-  for (const sec of set("sections", [])) if (sec.visible && SECTIONS[sec.id]) {
+  const secs = [...set("sections", [])]; if (!secs.some((s) => s.id === "letters")) { const i = secs.findIndex((s) => s.id === "news"); secs.splice(i < 0 ? secs.length : i + 1, 0, { id: "letters", layout: "grid", visible: true }); }
+  for (const sec of secs) if (sec.visible && SECTIONS[sec.id]) {
     const html = await SECTIONS[sec.id](sec.layout); if (!html) continue;
     parts.push(`<div class="sec" data-sec="${esc(sec.id)}"${SZ.includes(sec.size) ? ` data-size="${sec.size}"` : ""}${WD.includes(sec.width) ? ` data-width="${sec.width}"` : ""}>${html}</div>`);
   }
@@ -581,6 +586,7 @@ async function route(keep) {
     else if (parts[0] === "store") html = parts[1] ? await viewProduct(parts[1]) : await viewStore(q);
     else if (parts[0] === "resources") html = await viewResources(q);
     else if (parts[0] === "news") html = await viewNews(parts.slice(1), q);
+    else if (parts[0] === "letters") html = (await viewLetters(parts.slice(1), q)) ?? notFound();
     else if (parts[0] === "legal") html = await legalView(parts[1]);
     else if (parts[0] === "about") html = viewAbout();
     else if (parts[0] === "order") html = await viewOrder();
@@ -595,6 +601,7 @@ async function route(keep) {
   if (parts[0] === "store" && !parts[1]) drawStore();
   if (parts[0] === "resources") drawResources();
   initPreviews();
+  if (parts[0] === "letters") wireLetters(parts.slice(1), q);
   if (parts[0] === "order" && S.services) wireOrder();
   observe();
 }
@@ -740,6 +747,6 @@ async function refreshFx(force) { const r = await getRate(force); if (r) { S.fx.
   loadServices().then(drawCart).catch(() => {});
   initOffline(() => { toast("Back online.", "ok"); route(true); refreshFx(true); });
   const idle = window.requestIdleCallback || ((f) => setTimeout(f, 3000));
-  idle(() => warmOffline([loadSettings, () => loadServices(true), () => loadProjects(true), () => loadStore(true), () => loadRes(true), warmNews]), { timeout: 8000 });
+  idle(() => warmOffline([loadSettings, () => loadServices(true), () => loadProjects(true), () => loadStore(true), () => loadRes(true), warmNews, warmLetters]), { timeout: 8000 });
   refreshFx(); setInterval(() => refreshFx(true), 30 * 60 * 1000);   // live rate, refreshed every 30 min
 })();

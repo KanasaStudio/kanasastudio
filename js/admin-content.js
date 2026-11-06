@@ -132,11 +132,12 @@ async function pfEdit(el, id) {
 }
 
 /* ================= SITE EDITOR ================= */
-const SECTION_LAYOUTS = { hero: ["split", "stacked"], pricing: ["table"], services: ["list"], portfolio: ["grid"], store: ["grid"], resources: ["grid"], news: ["list"], testimonials: ["grid"], workflow: ["steps"], availability: ["banner"], faq: ["list"], contact: ["split"] };
+const SECTION_LAYOUTS = { hero: ["split", "stacked"], pricing: ["table"], services: ["list"], portfolio: ["grid"], store: ["grid"], resources: ["grid"], news: ["list"], letters: ["grid"], testimonials: ["grid"], workflow: ["steps"], availability: ["banner"], faq: ["list"], contact: ["split"] };
 export async function viewSite(el) {
   const pub = Object.fromEntries(must(await sb.from("site_settings").select("key,value")).map((r) => [r.key, r.value]));
   const dr = Object.fromEntries(must(await sb.from("site_settings_draft").select("key,value")).map((r) => [r.key, r.value]));
   const draft = structuredClone({ ...pub, ...dr }); let dirty = false, device = "100%";
+  if (Array.isArray(draft.sections) && !draft.sections.some((x) => x.id === "letters")) { const i = draft.sections.findIndex((x) => x.id === "news"); draft.sections.splice(i < 0 ? draft.sections.length : i + 1, 0, { id: "letters", layout: "grid", visible: true }); }
   const input = (path, label, o = {}) => fld(path, label, getPath(draft, path) ?? "", { ...o, attrs: `data-path="${path}" ${o.type === "number" ? 'data-type="number"' : ""} ${o.attrs || ""}` });
   const check = (path, label) => `<label class="check field"><input type="checkbox" data-path="${path}" data-type="bool" ${getPath(draft, path) ? "checked" : ""}> ${esc(label)}</label>`;
   const isVid = (u) => /\.(mp4|webm)(\?|$)/i.test(u || "");

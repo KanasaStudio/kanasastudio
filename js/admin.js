@@ -1,12 +1,13 @@
 import { sb, esc, toast, fld, chk, busy, must } from "./admin-lib.js";
 import { $, $$, money, range, fmtDate, STATUS } from "./util.js";
-import { viewResources } from "./admin-resources.js?v=20261103a";
-import { viewNews } from "./admin-news.js?v=20261103a";
-import { viewStore, viewNotify } from "./admin-store.js?v=20261103a";
-import { viewServices, viewPortfolio, viewSite, viewPayments } from "./admin-content.js?v=20261103a";
+import { viewResources } from "./admin-resources.js?v=20261105a";
+import { viewNews } from "./admin-news.js?v=20261105a";
+import { viewLetters } from "./admin-letters.js?v=20261105a";
+import { viewStore, viewNotify } from "./admin-store.js?v=20261105a";
+import { viewServices, viewPortfolio, viewSite, viewPayments } from "./admin-content.js?v=20261105a";
 
 const root = $("#root");
-const NAV = [["dashboard", "Dashboard"], ["orders", "Orders"], ["payments", "Payments"], ["services", "Services & pricing"], ["portfolio", "Portfolio"], ["store", "Store"], ["resources", "Creator tools"], ["news", "News"], ["notify", "Notifications"], ["site", "Site editor"], ["audit", "Audit log"]];
+const NAV = [["dashboard", "Dashboard"], ["orders", "Orders"], ["payments", "Payments"], ["services", "Services & pricing"], ["portfolio", "Portfolio"], ["store", "Store"], ["resources", "Creator tools"], ["news", "News"], ["letters", "Digital letters"], ["notify", "Notifications"], ["site", "Site editor"], ["audit", "Audit log"]];
 let channel = null;
 
 /* ---------- auth ---------- */
@@ -59,6 +60,7 @@ async function route() {
     else if (k === "portfolio") await viewPortfolio(view(), id);
     else if (k === "resources") await viewResources(view(), id);
     else if (k === "news") await viewNews(view(), id);
+    else if (k === "letters") await viewLetters(view(), id);
     else if (k === "store") await viewStore(view(), id);
     else if (k === "notify") await viewNotify(view());
     else if (k === "site") await viewSite(view());

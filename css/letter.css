@@ -117,3 +117,51 @@
 .slide.ph figcaption { margin-top: .8rem; opacity: .85; } @keyframes ltKen { from { transform: scale(1); } to { transform: scale(1.06); } }
 
 @media (prefers-reduced-motion: reduce) { .lt *, .lt *::before, .lt *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; transition-delay: 0s !important; } }
+
+/* ===== premium layer (v2): references = bold botanical silhouettes on burgundy/blush, hand-drawn pastel party on cream ===== */
+.lt { --flower: url("data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 200 320%22%3E%3Cg fill=%22%23000%22%3E%3Cpath d=%22M100 320V150%22 stroke=%22%23000%22 stroke-width=%2210%22 fill=%22none%22/%3E%3Ccircle cx=%22100%22 cy=%2292%22 r=%2226%22/%3E%3Cpath d=%22M100 60c-14-30 4-52 0-60 22 10 26 34 0 60zM100 124c14 30-4 52 0 60-22-10-26-34 0-60zM68 92c-30-14-52 4-60 0 10-22 34-26 60 0zM132 92c30 14 52-4 60 0-10 22-34 26-60 0zM77 69c-6-30-28-40-30-48 22-2 40 14 30 48zM123 115c6 30 28 40 30 48-22 2-40-14-30-48zM123 69c30-6 40-28 48-30 2 22-14 40-48 30zM77 115c-30 6-40 28-48 30-2-22 14-40 48-30z%22/%3E%3Cpath d=%22M100 250c-40-6-62-34-64-70 38 4 62 30 64 70zM100 280c40-6 62-34 64-70-38 4-62 30-64 70z%22/%3E%3C/g%3E%3C/svg%3E"); --grain: url("data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22160%22 height=%22160%22%3E%3Cfilter id=%22n%22%3E%3CfeTurbulence type=%22fractalNoise%22 baseFrequency=%22.9%22 numOctaves=%222%22 stitchTiles=%22stitch%22/%3E%3CfeColorMatrix values=%220 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 .55 0%22/%3E%3C/filter%3E%3Crect width=%22160%22 height=%22160%22 filter=%22url(%23n)%22/%3E%3C/svg%3E"); --conf: url("data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22120%22 height=%22120%22%3E%3Cg fill=%22%23000%22%3E%3Ccircle cx=%2214%22 cy=%2222%22 r=%224%22/%3E%3Ccircle cx=%2280%22 cy=%2214%22 r=%222.5%22/%3E%3Ccircle cx=%22104%22 cy=%2270%22 r=%225%22/%3E%3Ccircle cx=%2240%22 cy=%2286%22 r=%223%22/%3E%3Cpath d=%22M60 50l3 8 8 3-8 3-3 8-3-8-8-3 8-3z%22/%3E%3C/g%3E%3C/svg%3E"); }
+.lt::after { content: ""; position: absolute; inset: 0; background: var(--grain); opacity: .07; mix-blend-mode: overlay; pointer-events: none; z-index: 5; }
+.lt-envelope::before { background: radial-gradient(ellipse at 50% 28%, color-mix(in srgb, var(--p) 34%, transparent), transparent 62%); }
+.lt-envelope .lt-stage::before, .lt-envelope .lt-stage::after { content: ""; position: absolute; bottom: -4%; width: min(46vw, 300px); aspect-ratio: 5/8; background: color-mix(in srgb, var(--p) 55%, var(--bg)); -webkit-mask: var(--flower) center/contain no-repeat; mask: var(--flower) center/contain no-repeat; opacity: .55; pointer-events: none; }
+.lt-envelope .lt-stage::before { left: -6%; rotate: -8deg; } .lt-envelope .lt-stage::after { right: -6%; rotate: 8deg; scale: -1 1; }
+.lt-envelope .lt-scene { z-index: 1; }
+.lt-envelope .lt-cap, .lt-giftbox .lt-cap, .lt-cake .lt-cap { font-weight: 600; letter-spacing: .04em; text-shadow: 0 2px 18px color-mix(in srgb, var(--bg) 70%, transparent); }
+.lt-envelope .env-seal { background: radial-gradient(circle at 32% 28%, #fff7d6, var(--a) 45%, color-mix(in srgb, var(--a) 60%, #000)); box-shadow: 0 4px 10px rgba(0,0,0,.45), inset 0 -3px 5px rgba(0,0,0,.25); }
+.lt-envelope .env::after { content: ""; position: absolute; left: 8%; right: 8%; bottom: -26px; height: 16px; background: radial-gradient(ellipse, rgba(0,0,0,.4), transparent 70%); filter: blur(4px); }
+.paper { background-image: linear-gradient(160deg, color-mix(in srgb, var(--paper) 94%, #fff), var(--paper) 55%, color-mix(in srgb, var(--paper) 90%, var(--p))); box-shadow: 0 2px 0 rgba(255,255,255,.4) inset, 0 40px 80px rgba(0,0,0,.5), 0 8px 18px rgba(0,0,0,.25); }
+.lt-title { background: linear-gradient(100deg, var(--p), color-mix(in srgb, var(--p) 55%, var(--a)) 45%, var(--p)); -webkit-background-clip: text; background-clip: text; color: transparent; letter-spacing: .01em; }
+.lt-title::after { content: ""; display: block; width: 72px; height: 2px; margin: .55rem 0 0; background: linear-gradient(90deg, var(--a), transparent); }
+.board .lt-title::after, .closing .lt-title::after { margin-inline: auto; }
+.lt-to::first-letter { font-size: 1.3em; }
+.lt-body::first-letter { initial-letter: 1; }
+.card-style .paper { border-radius: 20px; }
+.card-style .paper::after { content: ""; position: absolute; right: -10px; bottom: -14px; width: 110px; aspect-ratio: 5/8; background: color-mix(in srgb, var(--p) 22%, transparent); -webkit-mask: var(--flower) center/contain no-repeat; mask: var(--flower) center/contain no-repeat; rotate: 14deg; pointer-events: none; }
+.lt[data-decor~="ribbon"] .card-style .paper::after { display: none; }
+/* gift box: layered ribbon, bow, soft floor shadow, sparkle confetti backdrop */
+.lt-giftbox .lt-stage::before { content: ""; position: absolute; inset: 0; background: var(--conf) 0 0/120px 120px; opacity: .18; filter: invert(1) sepia(1) hue-rotate(-20deg); pointer-events: none; }
+.lt-giftbox .box { width: 210px; height: 210px; filter: drop-shadow(0 26px 22px rgba(0,0,0,.4)); }
+.lt-giftbox .box-lid::before { width: 74px; height: 36px; margin-left: -37px; top: -30px; border-width: 9px; border-radius: 50% 50% 8% 8% / 90% 90% 10% 10%; box-shadow: 0 0 0 1px rgba(0,0,0,.12); }
+.lt-giftbox .box-lid::after, .lt-giftbox .box-body::after { background: linear-gradient(90deg, color-mix(in srgb, var(--a) 70%, #000), var(--a) 40%, color-mix(in srgb, var(--a) 70%, #fff) 60%, color-mix(in srgb, var(--a) 80%, #000)); }
+.lt-giftbox .box-body { background: linear-gradient(90deg, color-mix(in srgb, var(--p) 75%, #000), var(--p) 35%, color-mix(in srgb, var(--p) 88%, #fff) 55%, color-mix(in srgb, var(--p) 78%, #000)); }
+/* cake: cream background with hand-drawn dots, rounder, glossier */
+.lt-cake .lt-stage::before { content: ""; position: absolute; inset: 0; background: var(--conf) 0 0/140px 140px; opacity: .2; filter: invert(1); pointer-events: none; }
+.lt-cake .tier { box-shadow: inset 0 -10px 0 rgba(0,0,0,.08), inset 0 3px 0 rgba(255,255,255,.35), 0 6px 0 rgba(0,0,0,.08); }
+.lt-cake .tier::after { content: ""; position: absolute; left: 6%; right: 6%; top: 22%; height: 6px; border-radius: 6px; background: repeating-linear-gradient(90deg, rgba(255,255,255,.7) 0 8px, transparent 8px 18px); }
+.lt-cake .candles b { filter: drop-shadow(0 0 10px rgba(255,170,0,.8)); }
+.lt-cake .lt-cap { font-size: clamp(1.6rem, 6vw, 2.4rem); }
+/* scrapbook: kraft board, stitched edge, washi tape cover */
+.lt-scrapbook { background: color-mix(in srgb, var(--bg) 88%, #7a5a3a); }
+.lt-scrapbook::before { background: radial-gradient(circle, color-mix(in srgb, var(--p) 22%, transparent) 1.5px, transparent 1.6px) 0 0/22px 22px; }
+.lt-scrapbook .book-cover { background: linear-gradient(100deg, rgba(0,0,0,.28) 0 6%, transparent 6% 8%, rgba(255,255,255,.08) 8%), var(--p); box-shadow: inset 0 0 0 7px color-mix(in srgb, var(--a) 35%, transparent), 0 20px 40px rgba(0,0,0,.4); border: 2px dashed color-mix(in srgb, var(--onp) 40%, transparent); outline: 0; }
+.lt-scrapbook .book-cover::before { content: ""; position: absolute; top: -10px; left: 50%; width: 80px; height: 22px; translate: -50% 0; rotate: -3deg; background: color-mix(in srgb, var(--a) 75%, #fff); opacity: .85; }
+.lt-scrapbook .pol { padding: 9px 9px 18px; }
+.lt-scrapbook .note { border-radius: 2px; background-image: repeating-linear-gradient(transparent 0 1.55em, color-mix(in srgb, var(--p) 18%, transparent) calc(1.55em) calc(1.55em + 1px)); }
+.lt-scrapbook .note::after { content: ""; position: absolute; top: -12px; left: 50%; width: 90px; height: 24px; translate: -50% 0; rotate: 2deg; background: color-mix(in srgb, var(--a) 70%, #fff); opacity: .8; }
+/* cinematic: aurora + slow vignette, glowing type */
+.lt-cinematic::before { background: radial-gradient(ellipse 120% 50% at 20% 110%, color-mix(in srgb, var(--p) 45%, transparent), transparent 70%), radial-gradient(ellipse 90% 40% at 90% -10%, color-mix(in srgb, var(--a) 22%, transparent), transparent 70%); animation: ltAurora 14s ease-in-out infinite alternate; }
+.lt-cinematic .lt-stage::after { content: ""; position: absolute; inset: 0; box-shadow: inset 0 0 160px 40px rgba(0,0,0,.55); pointer-events: none; }
+.lt-cinematic .lt-line, .lt-cinematic .lt-big { text-shadow: 0 0 28px color-mix(in srgb, var(--a) 45%, transparent), 0 2px 18px rgba(0,0,0,.6); }
+.lt-cinematic .lt-btn { background: transparent; color: inherit; border: 1px solid color-mix(in srgb, var(--a) 70%, transparent); box-shadow: 0 0 24px color-mix(in srgb, var(--p) 55%, transparent); letter-spacing: .22em; text-transform: uppercase; font-size: .78rem; }
+@keyframes ltAurora { to { opacity: .7; transform: translate3d(0, -2%, 0) scale(1.06); } }
+.lt-btn { background-image: linear-gradient(180deg, rgba(255,255,255,.18), transparent); }
+@media (prefers-reduced-motion: reduce) { .lt-cinematic::before { animation: none; } }

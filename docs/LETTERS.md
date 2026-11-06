@@ -30,3 +30,9 @@ Visitors pick a template, personalise it, preview it, and get a share link (`/le
 1. A new look with an existing story: Admin -> Templates -> add a row (engine, colours, text, effects, price). No code needed.
 2. A new story: add an async function to `ENGINES` in `js/letter/engines.js` (use `ctx.scene`, `ctx.press`, `ctx.type`, `ctx.fx`, `ctx.has(effect)`), add its mini thumbnail in `css/letters.css` (`.ltm-<engine>`), allow its key in the Templates engine list (`js/admin-letters.js`) and use it in a template.
 3. Bump the `?v=` cache-busting version across files and `V` in `sw.js`.
+
+## Sound effects per template (v2)
+`js/letter/sound.js` synthesises a distinct sound set per engine with WebAudio (no files, works offline): envelope = paper + wax seal + bells, giftbox = ribbon + chimes, cake = party blower + xylophone, scrapbook = page turn + tape, cinematic = deep swell + soft bells. The template's primary colour hue transposes the scale, so templates sharing an engine still sound different. Events: `open` (first tap), `tick` (typing), `reveal` (photos / next scene), `end` (closing). Nothing plays before the first tap; the ♪ button mutes music and effects; reduced-motion starts muted.
+
+## Visual references (v2)
+Palettes and layers were inspired by Canva references: bold botanical silhouettes on burgundy/blush (envelope), hand-drawn pastel party on cream (cake/giftbox), kraft scrapbook with washi tape, aurora night sky (cinematic). Per-template palettes live in migration `20261106000015_letter_palettes.sql`.

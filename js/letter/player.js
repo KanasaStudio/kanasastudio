@@ -2,6 +2,7 @@
    A "letter" is { engine, content }. The engine (see engines.js) decides the story: cover -> reveal -> letter -> closing. */
 import { createFx } from "./fx.js";
 import { ENGINES } from "./engines.js";
+import { createSound } from "./sound.js";
 
 export const FONTS = {
   serif: ["'Cormorant Garamond',Georgia,serif", "Cormorant+Garamond:ital,wght@0,400;0,600;1,400"],
@@ -24,10 +25,10 @@ function loadFont(key) {
 const okUrl = (u) => (/^https:\/\//i.test(u || "") ? u : "");
 
 export function createPlayer(host, { preview = false, makeUrl = "../#/letters" } = {}) {
-  let run = 0, fx = null, audio = null, root = null;
+  let run = 0, fx = null, audio = null, root = null, snd = null;
   const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-  function destroy() { run++; fx?.destroy(); fx = null; if (audio) { audio.pause(); audio = null; } root?.remove(); root = null; }
+  function destroy() { run++; fx?.destroy(); fx = null; snd?.destroy(); snd = null; if (audio) { audio.pause(); audio = null; } root?.remove(); root = null; }
 
   function play(letter) {
     destroy(); const my = run, c = normalize(letter.content), eng = ENGINES[letter.engine] || ENGINES.envelope;
@@ -40,6 +41,7 @@ export function createPlayer(host, { preview = false, makeUrl = "../#/letters" }
     const stage = document.createElement("div"); stage.className = "lt-stage"; root.append(stage); host.append(root);
     fx = createFx(root, () => [th.primary, th.accent, "#ffffff", th.paper], reduced);
     if (letter.quick) c.effects = c.effects.filter((e) => !["opening", "typing", "closing"].includes(e));
+    snd = createSound(letter.engine in ENGINES ? letter.engine : "envelope", th.primary, { off: reduced }); let opened = false;
     const S = STR[c.lang] || STR.id, alive = () => my === run, tapQ = [];
     stage.addEventListener("click", (e) => { if (!e.target.closest("button,a,.lt-lightbox")) tapQ.splice(0).forEach((r) => r()); });
     const wait = (ms) => new Promise((r) => setTimeout(r, reduced ? Math.min(ms, 80) : ms)).then(() => { if (!alive()) return new Promise(() => {}); });
@@ -47,27 +49,27 @@ export function createPlayer(host, { preview = false, makeUrl = "../#/letters" }
     let cur = null;
     const ctx = {
       c, t: S, reduced, quick: !!letter.quick, stage, alive, wait, nextTap, preview, makeUrl, fx,
-      has: (k) => c.effects.includes(k), decor: (k) => c.decor.includes(k),
+      sfx: (n) => snd?.play(n), has: (k) => c.effects.includes(k), decor: (k) => c.decor.includes(k),
       scene(html, cls = "") {
         const el = document.createElement("section"); el.className = `lt-scene ${cls}`; el.innerHTML = html;
         const old = cur; cur = el; stage.append(el); el.getBoundingClientRect(); el.classList.add("in");
         if (old) { old.classList.add("out"); setTimeout(() => old.remove(), 700); } return el;
       },
-      press(el) { return new Promise((r) => el.addEventListener("click", () => { startMusic(); r(); }, { once: true })); },
+      press(el) { return new Promise((r) => el.addEventListener("click", () => { startMusic(); snd?.play(opened ? "reveal" : "open"); opened = true; r(); }, { once: true })); },
       async type(el, text) {
         if (!ctx.has("typing") || reduced) { el.textContent = text; return; }
         el.textContent = ""; let i = 0, skip = false; nextTap().then(() => { skip = true; });
         const d = Math.max(10, Math.min(42, 15000 / Math.max(1, text.length))), sc = el.closest(".scroll");
-        while (i < text.length && !skip && alive()) { i++; el.textContent = text.slice(0, i); if (sc && i % 6 === 0) sc.scrollTop = sc.scrollHeight; await wait(d * (/[.!?\n]/.test(text[i - 1]) ? 7 : /[,;]/.test(text[i - 1]) ? 3 : 1)); }
+        while (i < text.length && !skip && alive()) { i++; if (i % 3 === 0 && /\S/.test(text[i - 1])) ctx.sfx("tick"); el.textContent = text.slice(0, i); if (sc && i % 6 === 0) sc.scrollTop = sc.scrollHeight; await wait(d * (/[.!?\n]/.test(text[i - 1]) ? 7 : /[,;]/.test(text[i - 1]) ? 3 : 1)); }
         if (alive()) { el.textContent = text; if (sc) sc.scrollTop = sc.scrollHeight; }
       },
       replay: () => play(letter),
     };
     function startMusic() {
-      if (audio || !c.music || !okUrl(c.music.url)) return;
-      audio = new Audio(c.music.url); audio.loop = true; audio.volume = .6; audio.play().catch(() => {});
-      const b = document.createElement("button"); b.className = "lt-mute"; b.type = "button"; b.setAttribute("aria-label", S.mute); b.textContent = "♪"; b.setAttribute("aria-pressed", "true");
-      b.onclick = () => { const on = audio.paused; on ? audio.play() : audio.pause(); b.setAttribute("aria-pressed", String(on)); b.classList.toggle("off", !on); }; root.append(b);
+      if (root.querySelector(".lt-mute")) return;
+      if (c.music && okUrl(c.music.url) && !audio) { audio = new Audio(c.music.url); audio.loop = true; audio.volume = .6; audio.play().catch(() => {}); }
+      const b = document.createElement("button"); b.className = "lt-mute"; b.type = "button"; b.setAttribute("aria-label", S.mute); b.textContent = "♪"; b.setAttribute("aria-pressed", String(!snd.muted));
+      b.onclick = () => { const on = snd.muted; snd.muted = !on; if (audio) on ? audio.play().catch(() => {}) : audio.pause(); b.setAttribute("aria-pressed", String(on)); b.classList.toggle("off", !on); }; root.append(b);
     }
     root.addEventListener("pointerdown", startMusic, { once: true });
     ctx.okUrl = okUrl;

@@ -17,7 +17,7 @@ function lightbox(root, url, alt) {
   const o = el("div", "lt-lightbox"); const i = el("img"); i.src = url; i.alt = alt || ""; o.append(i); o.onclick = () => o.remove(); root.append(o);
 }
 function polaroids(ctx, host, cls = "") {
-  const wrap = el("div", `lt-gal ${cls}`); wrap.setAttribute("aria-label", ctx.t.memories);
+  ctx.sfx("reveal"); const wrap = el("div", `lt-gal ${cls}`); wrap.setAttribute("aria-label", ctx.t.memories);
   ctx.c.photos.forEach((p, i) => {
     const f = el("figure", "pol"); f.style.setProperty("--r", `${((i * 37) % 9) - 4}deg`); f.style.setProperty("--d", `${i * 140}ms`);
     const im = el("img"); im.src = p.url; im.alt = p.caption || ""; im.loading = "lazy"; im.decoding = "async"; f.append(im);
@@ -44,7 +44,7 @@ async function readLetter(ctx, cls = "") {
 }
 function replayBtn(ctx) { const b = el("button", "lt-btn ghost", "↺ " + ctx.t.replay); b.type = "button"; b.onclick = () => ctx.replay(); return b; }
 async function closing(ctx) {
-  const { c, t } = ctx;
+  const { c, t } = ctx; ctx.sfx("end");
   const s = ctx.scene(`<div class="lt-center closing"><p class="lt-w"></p><h2 class="lt-big"></h2><small class="lt-date"></small><div class="lt-actions"></div></div>`);
   s.querySelector(".lt-w").textContent = t.withLove; s.querySelector(".lt-big").textContent = c.from || c.title; s.querySelector(".lt-date").textContent = c.date ? fmt(c.date, c.lang) : "";
   const a = s.querySelector(".lt-actions"); a.append(replayBtn(ctx));
@@ -125,7 +125,7 @@ export const ENGINES = {
     let i = 0;
     for (const p of paras) {
       if (!ctx.alive()) return;
-      const s = ctx.scene(`<div class="lt-center slide"><p class="lt-line"></p><small class="lt-tap">${t.tap}</small>${dots(total, i++)}</div>`);
+      ctx.sfx("reveal"); const s = ctx.scene(`<div class="lt-center slide"><p class="lt-line"></p><small class="lt-tap">${t.tap}</small>${dots(total, i++)}</div>`);
       await ctx.type(s.querySelector(".lt-line"), p); await Promise.race([ctx.wait(1500 + p.length * 28), ctx.nextTap()]);
     }
     for (const ph of photos) {
@@ -134,7 +134,7 @@ export const ENGINES = {
       const im = s.querySelector("img"); im.src = ph.url; im.alt = ph.caption || ""; s.querySelector("figcaption").textContent = ph.caption; await Promise.race([ctx.wait(4200), ctx.nextTap()]);
     }
     if (!ctx.alive()) return;
-    const s = ctx.scene(`<div class="lt-center slide closing"><p class="lt-w">${t.withLove}</p><h2 class="lt-big"></h2><small class="lt-date"></small><div class="lt-actions"></div>${dots(total, total)}</div>`);
+    ctx.sfx("end"); const s = ctx.scene(`<div class="lt-center slide closing"><p class="lt-w">${t.withLove}</p><h2 class="lt-big"></h2><small class="lt-date"></small><div class="lt-actions"></div>${dots(total, total)}</div>`);
     s.querySelector(".lt-big").textContent = c.from || c.title; s.querySelector(".lt-date").textContent = c.date ? fmt(c.date, c.lang) : "";
     const a = s.querySelector(".lt-actions"); a.append(replayBtn(ctx)); if (!ctx.preview) { const m = el("a", "lt-link", t.mine); m.href = ctx.makeUrl; a.append(m); }
     if (ctx.has("closing")) ctx.fx.confetti(40, .5, .4);

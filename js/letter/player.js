@@ -33,13 +33,13 @@ export function createPlayer(host, { preview = false, makeUrl = "../#/letters" }
   function play(letter) {
     destroy(); const my = run, c = normalize(letter.content), eng = ENGINES[letter.engine] || ENGINES.envelope;
     loadFont(c.font);
-    root = document.createElement("div"); root.className = `lt lt-${letter.engine in ENGINES ? letter.engine : "envelope"}`;
+    root = document.createElement("div"); root.className = `lt lt-${letter.engine in ENGINES ? letter.engine : "envelope"}${preview ? " lt-lite" : ""}`;
     const th = c.theme; root.style.setProperty("--p", th.primary); root.style.setProperty("--a", th.accent); root.style.setProperty("--bg", th.bg); root.style.setProperty("--paper", th.paper);
     root.style.setProperty("--ink", lum(th.paper) > .45 ? "#2b2320" : "#f5efe8"); root.style.setProperty("--onbg", lum(th.bg) > .45 ? "#2b2320" : "#f7f2ec");
     root.style.setProperty("--onp", lum(th.primary) > .45 ? "#2b2320" : "#ffffff"); root.style.setProperty("--font", FONTS[c.font][0]);
     root.dataset.decor = c.decor.join(" ");
     const stage = document.createElement("div"); stage.className = "lt-stage"; root.append(stage); host.append(root);
-    fx = createFx(root, () => [th.primary, th.accent, "#ffffff", th.paper], reduced);
+    fx = createFx(root, () => [th.primary, th.accent, "#ffffff", th.paper], reduced, { lite: preview });
     if (letter.quick) c.effects = c.effects.filter((e) => !["opening", "typing", "closing"].includes(e));
     snd = createSound(letter.engine in ENGINES ? letter.engine : "envelope", th.primary, { off: reduced }); let opened = false;
     const S = STR[c.lang] || STR.id, alive = () => my === run, tapQ = [];

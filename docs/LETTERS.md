@@ -42,3 +42,6 @@ Palettes and layers were inspired by Canva references: bold botanical silhouette
 
 ## Custom GIF stickers
 Editor step 2 → "GIF stickers": the sender uploads their own GIF / animated WebP / PNG (≤ 5 MB, stored as-is in `letter-media` so the animation survives; photos are re-encoded to JPG, GIFs are not). 3 per letter, 6 with the Gallery add-on. Each GIF has a placement: intro / letter / both. Intro GIFs pop in as a motion-graphic beat; letter GIFs appear as stickers under the message (cinematic: a slide). Stored in `content.gifs = [{url, place}]`, validated by `letter_clean` (migration `20261106000016_letter_gifs.sql`: only own-bucket URLs ending .gif/.webp/.png).
+
+## Performance notes
+Particles run at 0.55× speed (`SPEED` in fx.js). The editor preview iframe uses lite mode (`.lt-lite`, 1× canvas, fewer particles). Avoided on purpose: blend-mode overlays, animated blur/drop-shadow filters, masked rotating layers, large animated box-shadows.

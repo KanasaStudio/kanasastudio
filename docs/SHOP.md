@@ -19,7 +19,7 @@ Semua perubahan uang lewat RPC SECURITY DEFINER; tabel RLS (pembeli hanya meliha
 ## Efek suara baru (Admin → Site editor → Sound effects)
 `login`, `coin`, `paid`, `status`, `deliver` — ada bawaan sintetis; unggah file ElevenLabs untuk menggantinya.
 
-## Login Google (opsional)
+## Login Google (opsional — sedang dinonaktifkan; set `GOOGLE_LOGIN = true` di js/shop.js setelah setup)
 Tombol "Lanjutkan dengan Google" memakai Supabase Auth (alur PKCE). Agar aktif, lakukan sekali:
 1. Google Cloud Console → APIs & Services → Credentials → **Create OAuth client ID** (Web application). Authorized redirect URI: `https://geroipkbzmbkigzwjdok.supabase.co/auth/v1/callback`.
 2. Supabase Dashboard → Authentication → Providers → **Google** → Enable, isi Client ID & Client Secret (rahasia ini hanya di Supabase, bukan di kode).

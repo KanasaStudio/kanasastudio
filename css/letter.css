@@ -276,3 +276,25 @@
 .lt[data-skin] .lt-stage::before, .lt[data-skin] .lt-stage::after { display: none; }
 .lt[data-skin="roses"] .paper, .lt[data-skin="gold"] .paper { background-size: 70px 70px, 78px 78px, auto; }
 .lt[data-skin="meadow"] .lt-deco i, .lt[data-skin="roses"] .lt-deco .d1, .lt[data-skin="roses"] .lt-deco .d2 { width: min(66vw, 340px); }
+
+/* ===== desktop / tablet: the letter used to look like a small phone UI floating in a big page; scale it up and centre it ===== */
+.paper-wrap { align-items: center; }
+@media (min-width: 900px) and (min-height: 640px) {
+  .env, .box, .cake, .book { zoom: 1.55; }
+  .lt-cap { font-size: clamp(1.8rem, 2.6vw, 2.6rem); }
+  .lt-hint { font-size: .9rem; }
+  .paper { width: min(100%, 780px); font-size: clamp(1.25rem, 1.7vw, 1.6rem); padding: clamp(2.4rem, 4vw, 4rem); }
+  .lt-gal .pol { width: min(30%, 240px); }
+  .lt-btn { font-size: 1.05rem; padding: 1rem 2rem; }
+  .lt-line { font-size: clamp(2rem, 3.4vw, 3.2rem); max-width: 22ch; }
+  .lt-big { font-size: clamp(2.6rem, 5vw, 4.6rem); }
+  .mg-title, .mg-name { font-size: clamp(3.4rem, 8vw, 7.5rem); max-width: 16ch; }
+  .mg-words { font-size: clamp(2.4rem, 4.6vw, 4.6rem); max-width: 20ch; }
+  .lt-deco i { width: min(34vw, 460px); } .lt-deco .d3, .lt-deco .d4 { width: min(22vw, 300px); }
+  .lt[data-skin="sakura"] .lt-deco .d1 { width: min(52vw, 640px); }
+  .lt[data-skin="roses"] .lt-deco .d1, .lt[data-skin="roses"] .lt-deco .d2, .lt[data-skin="meadow"] .lt-deco i { width: min(38vw, 500px); }
+  .lt[data-skin="roses"] .lt-deco .d3, .lt[data-skin="gold"] .lt-deco .d3, .lt[data-skin="roses"] .lt-deco .d4, .lt[data-skin="gold"] .lt-deco .d4, .lt[data-skin="gold"] .lt-deco .d1, .lt[data-skin="gold"] .lt-deco .d2 { width: 170px; }
+  .slide { max-width: 860px; }
+  .mg-strip { width: min(60vh, 520px); }
+  .lt-mute { top: 22px; right: 22px; }
+}

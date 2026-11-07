@@ -143,3 +143,7 @@
 }
 .lt-opt span, .lt-plan span { display: block; } .lt-opt b, .lt-plan b { font-weight: 600; } .lt-opt em, .lt-plan em { margin-left: .5rem; }
 .lt-opt, .lt-plan { align-items: flex-start; } .lt-opt input, .lt-plan input { margin-top: .2rem; }
+
+/* result / editor page: breathing room under the sticky header, and the QR row aligned to the top */
+.lt-ed { padding-top: clamp(1.75rem, 4vw, 3rem); }
+.lt-qr { align-items: flex-start; }

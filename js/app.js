@@ -4,10 +4,10 @@ import { applyTheme } from "./theme.js";
 import { getRate } from "./fx.js";
 import * as cart from "./cart.js";
 import { initSfx, play as sfx } from "./sfx.js";
-import { initPreviews } from "./preview.js?v=20261106g";
-import { initLetters, viewLetters, wireLetters, lettersStrip, warmLetters } from "./letters.js?v=20261106g";
-import { initOffline, warmOffline } from "./offline.js?v=20261106g";
-import { initNews, viewNews, newsStrip, warmNews } from "./news.js?v=20261106g";
+import { initPreviews } from "./preview.js?v=20261106i";
+import { initLetters, viewLetters, wireLetters, lettersStrip, warmLetters } from "./letters.js?v=20261106i";
+import { initOffline, warmOffline } from "./offline.js?v=20261106i";
+import { initNews, viewNews, newsStrip, warmNews } from "./news.js?v=20261106i";
 
 const S = {
   settings: {}, services: null, projects: null,

@@ -4,6 +4,7 @@
 import { sb } from "./db.js";
 import { esc, safeUrl, $, $$, money, fmtDate, store, toast } from "./util.js";
 import { play as sfx } from "./sfx.js";
+import { SUPABASE_URL, SUPABASE_KEY } from "./config.js";
 
 const H = { setMeta() {}, loadStore: async () => ({ products: [] }), rerender() {}, set: () => ({}) };
 const LOGO = "assets/kanasatoken-64.png", LOGO_BIG = "assets/kanasatoken-256.png";
@@ -248,9 +249,16 @@ async function onClick(ev) {
   if (k === "rm") return removeFromCart(id);
   if (k === "reload") return H.rerender();
   if (k === "google") {
-    store.set("kns_next", el.dataset.next || "akun"); el.disabled = true;
+    el.disabled = true;
+    const say = (m) => { el.disabled = false; const e = $("#k-err"); if (e) e.textContent = m; toast(m); sfx("error"); };
+    try {   // cek dulu apakah provider Google aktif, supaya pembeli tidak mendarat di halaman error mentah
+      const r = await fetch(`${SUPABASE_URL}/auth/v1/settings`, { headers: { apikey: SUPABASE_KEY } });
+      const cfg = r.ok ? await r.json() : null;
+      if (cfg && cfg.external && cfg.external.google === false) return say("Login Google belum diaktifkan. Silakan masuk dengan email dulu.");
+    } catch { if (!navigator.onLine) return say("Kamu sedang offline. Coba lagi saat tersambung."); }
+    store.set("kns_next", el.dataset.next || "akun");
     const { error } = await sb.auth.signInWithOAuth({ provider: "google", options: { redirectTo: location.origin + location.pathname } });
-    if (error) { el.disabled = false; $("#k-err") && ($("#k-err").textContent = /not enabled|unsupported/i.test(error.message) ? "Login Google belum diaktifkan oleh admin. Gunakan email dulu." : nice(error.message)); toast("Login Google belum tersedia."); }
+    if (error) say(/not enabled|unsupported/i.test(error.message) ? "Login Google belum diaktifkan. Silakan masuk dengan email dulu." : nice(error.message));
     return;
   }
   if (k === "copy") { try { await navigator.clipboard.writeText(el.dataset.v); toast("Disalin.", "ok"); } catch { toast("Salin manual ya."); } return; }

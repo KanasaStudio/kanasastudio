@@ -2,7 +2,7 @@
    - App files, last-seen data (services, portfolio, store, tools, news, settings) and viewed images are kept on the device,
      so those pages open without a connection. Online, the network always wins (fresh content), the cache is the fallback.
    - Never cached: /admin/, anything with a signed-in user's token, orders/payments/uploads (they are POSTs anyway), videos. */
-const V = "20261107b";
+const V = "20261107c";
 const SHELL = `kns-${V}-shell`, API = `kns-${V}-api`, MEDIA = `kns-${V}-media`, LIB = "kns-lib";
 const KEEP = [SHELL, API, MEDIA, LIB];
 const SB_HOST = "geroipkbzmbkigzwjdok.supabase.co";

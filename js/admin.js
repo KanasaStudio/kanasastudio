@@ -1,13 +1,14 @@
 import { sb, esc, toast, fld, chk, busy, must } from "./admin-lib.js";
 import { $, $$, money, range, fmtDate, STATUS } from "./util.js";
-import { viewResources } from "./admin-resources.js?v=20261106i";
-import { viewNews } from "./admin-news.js?v=20261106i";
-import { viewLetters } from "./admin-letters.js?v=20261106i";
-import { viewStore, viewNotify } from "./admin-store.js?v=20261106i";
-import { viewServices, viewPortfolio, viewSite, viewPayments } from "./admin-content.js?v=20261106i";
+import { viewResources } from "./admin-resources.js?v=20261107a";
+import { viewNews } from "./admin-news.js?v=20261107a";
+import { viewShop } from "./admin-shop.js?v=20261107a";
+import { viewLetters } from "./admin-letters.js?v=20261107a";
+import { viewStore, viewNotify } from "./admin-store.js?v=20261107a";
+import { viewServices, viewPortfolio, viewSite, viewPayments } from "./admin-content.js?v=20261107a";
 
 const root = $("#root");
-const NAV = [["dashboard", "Dashboard"], ["orders", "Orders"], ["payments", "Payments"], ["services", "Services & pricing"], ["portfolio", "Portfolio"], ["store", "Store"], ["resources", "Creator tools"], ["news", "News"], ["letters", "Digital letters"], ["notify", "Notifications"], ["site", "Site editor"], ["audit", "Audit log"]];
+const NAV = [["dashboard", "Dashboard"], ["orders", "Orders"], ["payments", "Payments"], ["services", "Services & pricing"], ["portfolio", "Portfolio"], ["store", "Store"], ["shop", "Shop orders"], ["resources", "Creator tools"], ["news", "News"], ["letters", "Digital letters"], ["notify", "Notifications"], ["site", "Site editor"], ["audit", "Audit log"]];
 let channel = null;
 
 /* ---------- auth ---------- */
@@ -61,6 +62,7 @@ async function route() {
     else if (k === "resources") await viewResources(view(), id);
     else if (k === "news") await viewNews(view(), id);
     else if (k === "letters") await viewLetters(view(), id);
+    else if (k === "shop") await viewShop(view(), id);
     else if (k === "store") await viewStore(view(), id);
     else if (k === "notify") await viewNotify(view());
     else if (k === "site") await viewSite(view());

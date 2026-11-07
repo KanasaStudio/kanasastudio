@@ -5,6 +5,7 @@ import { store } from "./util.js";
 export const EVENTS = [
   ["click", "Click (buttons, links)"], ["hover", "Hover (very quiet)"], ["nav", "Page change"], ["toggle", "Filter / toggle"],
   ["open", "Open cart / menu"], ["add", "Add to order"], ["success", "Success"], ["error", "Error"], ["drag", "Drag / rotate / slider"],
+  ["login", "Login berhasil"], ["coin", "KanasaToken masuk (top up)"], ["paid", "Checkout / pembayaran berhasil"], ["status", "Status pesanan berubah"], ["deliver", "Pesanan terkirim"],
 ];
 let ctx = null, master = null, cfg = { enabled: true, volume: 0.6, files: {} }, muted = store.get("kns_mute", false);
 const buffers = new Map(), last = {};
@@ -38,6 +39,11 @@ const SYNTH = {
   add: (c, t) => { tone(c, t, 520, 880, 0.12, "sine", 0.22); tone(c, t + 0.07, 1040, 1320, 0.14, "triangle", 0.1); },
   success: (c, t) => { tone(c, t, 784, null, 0.18, "sine", 0.2); tone(c, t + 0.1, 1175, null, 0.32, "sine", 0.2); tone(c, t + 0.1, 2350, null, 0.2, "sine", 0.04); },
   error: (c, t) => { tone(c, t, 180, 120, 0.14, "sawtooth", 0.1); tone(c, t + 0.12, 150, 90, 0.2, "sawtooth", 0.1); },
+  login: (c, t) => { [659, 880, 1319].forEach((f, i) => tone(c, t + i * 0.07, f, null, 0.22, "triangle", 0.14)); tone(c, t + 0.2, 2637, null, 0.25, "sine", 0.05); },
+  coin: (c, t) => { tone(c, t, 1568, null, 0.07, "square", 0.09); tone(c, t + 0.07, 2093, null, 0.5, "square", 0.08); tone(c, t + 0.07, 4186, null, 0.3, "sine", 0.05); tone(c, t + 0.2, 1568, null, 0.07, "square", 0.05); tone(c, t + 0.27, 2093, null, 0.4, "square", 0.05); },
+  paid: (c, t) => { swish(c, t, 3000, 6000, 0.05, 0.1, 3); tone(c, t, 988, null, 0.1, "square", 0.08); tone(c, t + 0.09, 1319, null, 0.5, "square", 0.09); tone(c, t + 0.09, 2637, null, 0.4, "sine", 0.05); },
+  status: (c, t) => { tone(c, t, 698, null, 0.12, "sine", 0.18); tone(c, t + 0.13, 932, null, 0.26, "sine", 0.18); },
+  deliver: (c, t) => { [523, 659, 784, 1047].forEach((f, i) => tone(c, t + i * 0.09, f, null, 0.2, "triangle", 0.16)); tone(c, t + 0.4, 1568, null, 0.5, "sine", 0.14); swish(c, t + 0.36, 2000, 8000, 0.4, 0.05, 2); },
   drag: (c, t) => swish(c, t, 900 + Math.random() * 500, 1800 + Math.random() * 800, 0.07, 0.07, 2.5),
 };
 

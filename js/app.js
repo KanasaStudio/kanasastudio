@@ -4,10 +4,11 @@ import { applyTheme } from "./theme.js";
 import { getRate } from "./fx.js";
 import * as cart from "./cart.js";
 import { initSfx, play as sfx } from "./sfx.js";
-import { initPreviews } from "./preview.js?v=20261106i";
-import { initLetters, viewLetters, wireLetters, lettersStrip, warmLetters } from "./letters.js?v=20261106i";
-import { initOffline, warmOffline } from "./offline.js?v=20261106i";
-import { initNews, viewNews, newsStrip, warmNews } from "./news.js?v=20261106i";
+import { initPreviews } from "./preview.js?v=20261107a";
+import { initLetters, viewLetters, wireLetters, lettersStrip, warmLetters } from "./letters.js?v=20261107a";
+import { initOffline, warmOffline } from "./offline.js?v=20261107a";
+import { initShop, viewShop, wireShop, isShopRoute, cartBtn } from "./shop.js?v=20261107a";
+import { initNews, viewNews, newsStrip, warmNews } from "./news.js?v=20261107a";
 
 const S = {
   settings: {}, services: null, projects: null,
@@ -20,6 +21,7 @@ const set = (k, d = {}) => S.settings[k] ?? d;
 const cur = () => set("order").currency || "IDR";
 initNews({ setMeta, observe, set });
 initLetters({ setMeta, set });
+initShop({ setMeta, set, loadStore: () => loadStore(), rerender: () => rerender() });
 
 /* ---------- display currency (live USD conversion, display only) ---------- */
 S.fx = { rate: null, at: null, mode: store.get("kns_cur", "IDR") };
@@ -55,7 +57,7 @@ async function loadProjects(force) {
 function renderChrome() {
   const b = set("brand"), nav = set("nav", []), f = set("footer"), soc = set("socials", []);
   $("#brand").innerHTML = `<img src="${esc(safeUrl(b.logo_url))}" alt="" width="30" height="30"><span>${esc(b.name || "Studio")}${b.partner ? ` <small>× ${esc(b.partner)}</small>` : ""}</span>`;
-  const navL = Array.isArray(nav) ? [...nav] : []; if (!navL.some((n) => n.href === "#/letters")) navL.push({ href: "#/letters", label: "Letters" });
+  let navL = Array.isArray(nav) ? [...nav] : []; navL = navL.filter((n) => !/^#\/order\/?$/.test(n.href || "")); if (!navL.some((n) => n.href === "#/store")) navL.splice(Math.min(2, navL.length), 0, { href: "#/store", label: "Store" }); if (!navL.some((n) => n.href === "#/letters")) navL.push({ href: "#/letters", label: "Letters" });
   $("#nav").innerHTML = navL.map((n) => `<a href="${esc(safeUrl(n.href))}">${esc(n.label)}</a>`).join("") + `<div class="nav-fx"><span class="muted">Currency</span><div class="seg" id="fx2" role="group" aria-label="Display currency" hidden><button data-cur="IDR" aria-pressed="true">IDR</button><button data-cur="USD" aria-pressed="false">USD</button></div></div>`;
   const lg = set("legal", {});
   $("#footer-links").innerHTML = Object.entries(lg).map(([k, l]) => `<li><a href="#/legal/${esc(k)}">${esc(l.title)}</a></li>`).join("") + soc.map((s) => `<li><a href="${esc(safeUrl(s.url))}" target="_blank" rel="noopener noreferrer">${esc(s.label)}</a></li>`).join("");
@@ -447,7 +449,7 @@ async function viewProduct(slug) {
       <div><span class="eyebrow">${esc(c?.name || "")}</span><h1 style="font-size:var(--fs-h2);margin:.6rem 0">${esc(p.title)}</h1>
         <div class="refbox" style="font-size:1.6rem;margin:.5rem 0">${esc(pPrice(p))}</div>${!free && usdOn() ? `<p class="muted" style="font-size:.8125rem">${esc(fxNote())}</p>` : ""}
         <p class="lead" style="font-size:1rem">${esc(p.summary || "")}</p>
-        <div id="buybox">${free ? `<button class="btn" data-act="freedl" data-slug="${esc(p.slug)}">Download for free</button>` : `<button class="btn" data-act="showbuy">Buy now</button>`}</div>
+        <div id="buybox">${free ? `<button class="btn" data-act="freedl" data-slug="${esc(p.slug)}">Download for free</button>` : `<button class="btn" data-act="showbuy">Buy now</button> ${cartBtn(p.id)}`}</div>
         ${meta.length ? `<dl class="specs" style="margin-top:1.5rem">${meta.map(([k, v]) => `<div><dt>${esc(k)}</dt><dd>${esc(v)}</dd></div>`).join("")}</dl>` : ""}
         ${(p.tags || []).length ? `<p style="margin-top:1rem">${p.tags.map((t) => `<span class="tag">${esc(t)}</span>`).join(" ")}</p>` : ""}
         ${p.description ? `<div style="margin-top:1.5rem">${paragraphs(p.description)}</div>` : ""}
@@ -553,7 +555,7 @@ async function doTrack() {
 /* ---------- cart drawer ---------- */
 function drawCart() {
   const lines = cart.all(), services = S.services || [], e = cart.estimate(lines, services);
-  $("#cart-count").textContent = cart.count(); $("#cart-count").hidden = !cart.count();
+  $("#cart-count").textContent = cart.count(); $("#cart-count").hidden = !cart.count(); $("#cart-open").hidden = !cart.count();
   $("#drawer-body").innerHTML = lines.length ? lines.map((l) => { const s = services.find((x) => x.id === l.service_id); if (!s) return "";
     const t = s.service_tiers.find((x) => x.id === l.tier_id), le = cart.estimate([l], services);
     return `<div class="cart-line"><div class="top"><strong>${esc(s.name)}</strong><button class="linkbtn" data-act="rm" data-id="${esc(l.uid)}">Remove</button></div>
@@ -589,6 +591,7 @@ async function route(keep) {
     else if (parts[0] === "letters") html = (await viewLetters(parts.slice(1), q)) ?? notFound();
     else if (parts[0] === "legal") html = await legalView(parts[1]);
     else if (parts[0] === "about") html = viewAbout();
+    else if (isShopRoute(parts[0])) html = await viewShop(parts, q);
     else if (parts[0] === "order") html = await viewOrder();
     else if (parts[0] === "track") html = await viewTrack(q);
     else html = notFound();
@@ -602,6 +605,7 @@ async function route(keep) {
   if (parts[0] === "resources") drawResources();
   initPreviews();
   if (parts[0] === "letters") wireLetters(parts.slice(1), q);
+  if (isShopRoute(parts[0])) wireShop(parts, q);
   if (parts[0] === "order" && S.services) wireOrder();
   observe();
 }
@@ -713,7 +717,7 @@ document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeDrawe
 window.addEventListener("hashchange", () => route());
 window.addEventListener("online", () => toast("Back online.", "ok"));
 let _cc = cart.count();
-cart.onChange(() => { const n = cart.count(); if (n > _cc) sfx("add"); _cc = n; if (S.services) drawCart(); else { $("#cart-count").textContent = cart.count(); $("#cart-count").hidden = !cart.count(); } });
+cart.onChange(() => { const n = cart.count(); if (n > _cc) sfx("add"); _cc = n; if (S.services) drawCart(); else { $("#cart-count").textContent = cart.count(); $("#cart-count").hidden = !cart.count(); $("#cart-open").hidden = !cart.count(); } });
 
 // live preview from the admin editor (same-origin iframe only)
 if (new URLSearchParams(location.search).has("preview")) {

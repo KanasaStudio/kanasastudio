@@ -19,3 +19,6 @@ Buat satu per satu, durasi 0.5–1 detik (hover dan click boleh 0.5 detik), lalu
 | success | Bright short positive chime, two soft ascending glassy notes, game reward ding |
 | error | Short low muted error buzz, soft double thud, gentle denied sound |
 | drag | Gentle dial scrub, short soft friction swish, turning a smooth knob |
+
+## Event toko (akun/KanasaToken)
+`login` (masuk), `coin` (KT masuk), `paid` (checkout berhasil), `status` (status pesanan berubah), `deliver` (pesanan terkirim). Diganti lewat Admin → Site editor → Sound effects.

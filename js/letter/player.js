@@ -24,7 +24,7 @@ function loadFont(key) {
 }
 const SKINS = ["meadow", "roses", "sakura", "bold", "gold", "lineart"];
 let skinCss = false;
-function loadSkins() { if (skinCss) return; skinCss = true; const l = document.createElement("link"); l.rel = "stylesheet"; l.href = new URL("../../css/letter-skins.css?v=20261106i", import.meta.url).href; document.head.append(l); }
+function loadSkins() { if (skinCss) return; skinCss = true; const l = document.createElement("link"); l.rel = "stylesheet"; l.href = new URL("../../css/letter-skins.css?v=20261107a", import.meta.url).href; document.head.append(l); }
 const okUrl = (u) => (/^https:\/\//i.test(u || "") ? u : "");
 
 export function createPlayer(host, { preview = false, makeUrl = "../#/letters" } = {}) {

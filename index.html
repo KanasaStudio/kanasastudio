@@ -18,8 +18,9 @@
   <link rel="preconnect" href="https://geroipkbzmbkigzwjdok.supabase.co" crossorigin>
   <link rel="modulepreload" href="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/+esm" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap">
-  <link rel="stylesheet" href="css/site.css?v=20261106i">
-  <link rel="stylesheet" href="css/letters.css?v=20261106i">
+  <link rel="stylesheet" href="css/site.css?v=20261107a">
+  <link rel="stylesheet" href="css/letters.css?v=20261107a">
+  <link rel="stylesheet" href="css/shop.css?v=20261107a">
   <script>document.documentElement.classList.remove("no-js")</script>
 </head>
 <body data-button="solid">
@@ -31,7 +32,9 @@
       <div style="display:flex;gap:.6rem;align-items:center">
         <div class="seg" id="fx" role="group" aria-label="Display currency" hidden><button data-cur="IDR" aria-pressed="true">IDR</button><button data-cur="USD" aria-pressed="false">USD</button></div>
         <button class="btn ghost sm sfx-btn" id="sfx-btn" type="button" hidden></button>
-        <button class="btn ghost sm cart-btn" id="cart-open" aria-label="Open order cart">Order <span class="count" id="cart-count" hidden>0</span></button>
+        <a class="btn ghost sm" id="kcart-btn" href="#/keranjang" aria-label="Keranjang"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 4h2l2.4 10.2a1 1 0 0 0 1 .8h8.2a1 1 0 0 0 1-.76L19 8H6"/><circle cx="9" cy="19" r="1.2"/><circle cx="17" cy="19" r="1.2"/></svg><span class="count" hidden>0</span></a>
+        <a class="btn ghost sm" id="acct-btn" href="#/akun">Masuk</a>
+        <button class="btn ghost sm cart-btn" id="cart-open" aria-label="Buka keranjang jasa (commission)" hidden>Jasa <span class="count" id="cart-count" hidden>0</span></button>
         <button class="btn ghost sm menu-btn" id="menu-btn" aria-label="Menu" aria-controls="nav" aria-expanded="false"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
       </div>
     </div>
@@ -54,6 +57,6 @@
   </aside>
 
   <noscript><div class="container page">This site needs JavaScript to load services and orders.</div></noscript>
-  <script type="module" src="js/app.js?v=20261106i"></script>
+  <script type="module" src="js/app.js?v=20261107a"></script>
 </body>
 </html>

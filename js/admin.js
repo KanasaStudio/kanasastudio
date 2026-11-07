@@ -1,11 +1,11 @@
 import { sb, esc, toast, fld, chk, busy, must } from "./admin-lib.js";
 import { $, $$, money, range, fmtDate, STATUS } from "./util.js";
-import { viewResources } from "./admin-resources.js?v=20261107a";
-import { viewNews } from "./admin-news.js?v=20261107a";
-import { viewShop } from "./admin-shop.js?v=20261107a";
-import { viewLetters } from "./admin-letters.js?v=20261107a";
-import { viewStore, viewNotify } from "./admin-store.js?v=20261107a";
-import { viewServices, viewPortfolio, viewSite, viewPayments } from "./admin-content.js?v=20261107a";
+import { viewResources } from "./admin-resources.js?v=20261107b";
+import { viewNews } from "./admin-news.js?v=20261107b";
+import { viewShop } from "./admin-shop.js?v=20261107b";
+import { viewLetters } from "./admin-letters.js?v=20261107b";
+import { viewStore, viewNotify } from "./admin-store.js?v=20261107b";
+import { viewServices, viewPortfolio, viewSite, viewPayments } from "./admin-content.js?v=20261107b";
 
 const root = $("#root");
 const NAV = [["dashboard", "Dashboard"], ["orders", "Orders"], ["payments", "Payments"], ["services", "Services & pricing"], ["portfolio", "Portfolio"], ["store", "Store"], ["shop", "Shop orders"], ["resources", "Creator tools"], ["news", "News"], ["letters", "Digital letters"], ["notify", "Notifications"], ["site", "Site editor"], ["audit", "Audit log"]];

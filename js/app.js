@@ -4,11 +4,11 @@ import { applyTheme } from "./theme.js";
 import { getRate } from "./fx.js";
 import * as cart from "./cart.js";
 import { initSfx, play as sfx } from "./sfx.js";
-import { initPreviews } from "./preview.js?v=20261107a";
-import { initLetters, viewLetters, wireLetters, lettersStrip, warmLetters } from "./letters.js?v=20261107a";
-import { initOffline, warmOffline } from "./offline.js?v=20261107a";
-import { initShop, viewShop, wireShop, isShopRoute, cartBtn } from "./shop.js?v=20261107a";
-import { initNews, viewNews, newsStrip, warmNews } from "./news.js?v=20261107a";
+import { initPreviews } from "./preview.js?v=20261107b";
+import { initLetters, viewLetters, wireLetters, lettersStrip, warmLetters } from "./letters.js?v=20261107b";
+import { initOffline, warmOffline } from "./offline.js?v=20261107b";
+import { initShop, viewShop, wireShop, isShopRoute, cartBtn } from "./shop.js?v=20261107b";
+import { initNews, viewNews, newsStrip, warmNews } from "./news.js?v=20261107b";
 
 const S = {
   settings: {}, services: null, projects: null,
@@ -731,11 +731,11 @@ if (new URLSearchParams(location.search).has("preview")) {
 /* ---------- currency toggle ---------- */
 function drawFx() {
   const box = $("#fx"), show = !!S.fx.rate && cur() === "IDR" && !set("order").fx_disabled;
-  box.hidden = !show; const b2 = $("#fx2"); if (b2) { b2.hidden = !show; b2.parentElement.hidden = !show; } if (!show) return;
+  box.hidden = !show; const ft = $("#fx-t"); if (ft) { ft.hidden = !show && !(S.fx.rate && S.fx.mode === "USD"); ft.textContent = S.fx.mode === "USD" ? "$" : "Rp"; ft.title = S.fx.mode === "USD" ? "Harga dalam USD (perkiraan)" : "Harga dalam Rupiah"; } const b2 = $("#fx2"); if (b2) { b2.hidden = !show; b2.parentElement.hidden = !show; } if (!show) return;
   $$("#fx button, #fx2 button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.cur === (S.fx.mode === "USD" ? "USD" : "IDR"))));
   const n = $("#fx-note"); if (n) n.textContent = fxNote();
 }
-document.addEventListener("click", (e) => { const b = e.target.closest("#fx button[data-cur], #fx2 button[data-cur]"); if (!b) return; S.fx.mode = b.dataset.cur; store.set("kns_cur", S.fx.mode); drawFx(); route(true); if (S.services) drawCart(); });
+document.addEventListener("click", (e) => { const ft = e.target.closest("#fx-t"); const b = ft ? { dataset: { cur: S.fx.mode === "USD" ? "IDR" : "USD" } } : e.target.closest("#fx button[data-cur], #fx2 button[data-cur]"); if (!b) return; S.fx.mode = b.dataset.cur; store.set("kns_cur", S.fx.mode); drawFx(); route(true); if (S.services) drawCart(); });
 async function refreshFx(force) { const r = await getRate(force); if (r) { S.fx.rate = r.rate; S.fx.at = r.at; drawFx(); if (S.fx.mode === "USD") { route(true); if (S.services) drawCart(); } } }
 
 /* ---------- boot ---------- */

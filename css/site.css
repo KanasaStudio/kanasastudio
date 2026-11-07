@@ -12,7 +12,7 @@
 .cart-btn { position: relative; }
 .cart-btn .count { position: absolute; top: -.45rem; right: -.45rem; min-width: 1.15rem; height: 1.15rem; border-radius: 99px; background: var(--accent); color: #fff; font: 600 .7rem/1.15rem var(--font-mono); text-align: center; }
 .menu-btn { display: none; }
-@media (max-width: 900px) {
+@media (max-width: 1180px) {
   .menu-btn { display: inline-flex; }
   .nav { position: fixed; inset: var(--header-h) 0 auto 0; background: var(--bg); border-bottom: var(--border-w) solid var(--border); flex-direction: column; align-items: stretch; gap: 0; padding: var(--space-3) var(--gutter) var(--space-5); transform: translateY(-8px); opacity: 0; pointer-events: none; transition: opacity var(--dur-2) var(--ease), transform var(--dur-2) var(--ease); }
   .nav.open { opacity: 1; transform: none; pointer-events: auto; }
@@ -220,7 +220,7 @@ details.acc > summary { cursor: pointer; padding: .8rem 1rem; font-weight: 500; 
 .sfx-btn svg { flex: none; min-width: 16px; }
 .brand { min-width: 0; }
 .brand > span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-@media (max-width: 900px) {
+@media (max-width: 1180px) {
   #fx { display: none !important; }
   .nav-fx { display: flex; align-items: center; justify-content: space-between; padding: 1rem 0 .2rem; }
   .nav-fx[hidden] { display: none; }

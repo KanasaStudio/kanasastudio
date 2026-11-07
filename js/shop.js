@@ -30,11 +30,29 @@ async function loadCart() {
 async function loadCfg(force) { if (CFG && !force) return CFG; const { data, error } = await sb.rpc("shop_config"); if (error) throw error; return (CFG = data); }
 async function loadWallet() { if (!U) return (WAL = null); const { data, error } = await sb.rpc("wallet_me"); if (!error) WAL = data; return WAL; }
 async function loadOrders() { const { data, error } = await sb.rpc("shop_orders_me"); if (error) throw error; return (ORD = data || []); }
+const USER_SVG = `<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7"/></svg>`;
 function chip() {
   const a = $("#acct-btn"), c = $("#kcart-btn"); if (!a) return;
-  a.innerHTML = U ? `<img class="kt-ico" src="${LOGO}" alt="" width="20" height="20"><span class="k-bal mono">${WAL ? Number(WAL.balance).toLocaleString("id-ID") : "…"}</span><span class="k-name">${esc(U.user_metadata?.name || (U.email || "").split("@")[0])}</span>` : "Masuk";
-  a.setAttribute("aria-label", U ? "Akun dan dompet KanasaToken" : "Masuk atau daftar");
+  a.innerHTML = U ? `<img class="kt-ico" src="${LOGO}" alt="" width="22" height="22"><span class="k-bal mono">${WAL ? Number(WAL.balance).toLocaleString("id-ID") : "…"}</span>` : USER_SVG;
+  a.classList.toggle("in", !!U);
+  a.setAttribute("aria-label", U ? "Menu akun" : "Masuk atau daftar"); a.setAttribute("aria-haspopup", U ? "menu" : "false"); a.title = U ? "Akun & dompet" : "Masuk / Daftar";
   if (c) { const n = CART.length; c.querySelector(".count").textContent = n; c.querySelector(".count").hidden = !n; }
+  if (!U) closeMenu();
+}
+function closeMenu() { $("#acct-menu")?.remove(); $("#acct-btn")?.setAttribute("aria-expanded", "false"); }
+function toggleMenu() {
+  if ($("#acct-menu")) return closeMenu();
+  const name = U.user_metadata?.name || (U.email || "").split("@")[0], a = $("#acct-btn"), m = document.createElement("div");
+  m.id = "acct-menu"; m.setAttribute("role", "menu");
+  const I = (d) => `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
+  m.innerHTML = `<div class="am-head"><b>${esc(name)}</b><span class="muted">${esc(U.email || "")}</span></div>
+    <a class="am-kt" href="#/dompet" role="menuitem"><img src="${LOGO}" alt="" width="34" height="34"><span><span class="muted">Saldo KanasaToken</span><br><b class="mono">${WAL ? Number(WAL.balance).toLocaleString("id-ID") : "0"} KT</b></span><span class="am-plus">+ Top up</span></a>
+    <a href="#/pesanan" role="menuitem">${I('<path d="M21 8l-9-5-9 5 9 5 9-5z"/><path d="M3 8v8l9 5 9-5V8"/>')}Pesanan saya</a>
+    <a href="#/keranjang" role="menuitem">${I('<path d="M3 4h2l2.4 10.2a1 1 0 0 0 1 .8h8.2a1 1 0 0 0 1-.76L19 8H6"/><circle cx="9" cy="19" r="1.2"/><circle cx="17" cy="19" r="1.2"/>')}Keranjang</a>
+    <a href="#/akun" role="menuitem">${I('<circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7"/>')}Profil</a>
+    ${ADMIN ? `<a href="admin/" role="menuitem">${I('<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/>')}Panel admin</a>` : ""}
+    <button type="button" data-k="logout" role="menuitem">${I('<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/>')}Keluar</button>`;
+  document.body.appendChild(m); a.setAttribute("aria-expanded", "true"); m.querySelector("a")?.focus({ preventScroll: true });
 }
 async function afterAuth(u) {
   U = u || null; WAL = null; ORD = null; ADMIN = false;
@@ -43,6 +61,7 @@ async function afterAuth(u) {
     if (local.length) { await Promise.all(local.map((id) => sb.from("cart_items").insert({ user_id: U.id, product_id: id }))); store.set(KEY, []); }
     sb.rpc("is_admin").then(({ data }) => { ADMIN = data === true; });
     await Promise.all([loadCart(), loadWallet()]);
+    const nx = store.get("kns_next", null); if (nx) { store.set("kns_next", null); location.hash = "#/" + String(nx).replace(/[^a-z0-9/_-]/gi, ""); }
   } else await loadCart();
   chip();
 }
@@ -56,6 +75,13 @@ export function initShop(h) {
     if (ev === "SIGNED_IN" || ev === "SIGNED_OUT" || ev === "USER_UPDATED") setTimeout(() => afterAuth(s?.user).then(() => { if (/^#\/(akun|keranjang|dompet|pesanan)/.test(location.hash)) H.rerender(); }), 0);
   });
   chip();
+  document.addEventListener("click", (e) => {
+    const a = e.target.closest("#acct-btn");
+    if (a && U) { e.preventDefault(); return toggleMenu(); }
+    if ($("#acct-menu") && (!e.target.closest("#acct-menu") || e.target.closest("#acct-menu a, #acct-menu button"))) closeMenu();
+  });
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeMenu(); });
+  window.addEventListener("hashchange", closeMenu);
   document.addEventListener("click", onClick);
   document.addEventListener("submit", onSubmit);
   document.addEventListener("input", onInput);
@@ -109,7 +135,7 @@ function viewAkun(q) {
         <button class="btn" id="k-go">Buat akun</button><p class="muted" style="font-size:.8125rem;margin-top:1rem">Dengan mendaftar kamu setuju dengan <a href="#/legal/terms">Syarat</a> dan <a href="#/legal/refund">Kebijakan Refund</a>.</p></form>`,
       lupa: `<form class="summary k-form" id="k-forgot"><p class="muted">Masukkan emailmu, kami kirim tautan untuk membuat kata sandi baru.</p><div class="field"><label class="req" for="k-email">Email</label><input class="input" id="k-email" type="email" autocomplete="email" required></div>${err}<button class="btn" id="k-go">Kirim tautan</button> <a class="muted k-link" href="#/akun?m=masuk">Kembali</a></form>`,
     };
-    return page("Akun", m === "daftar" ? "Buat akun" : m === "lupa" ? "Reset kata sandi" : "Masuk", `<div class="k-auth"><div>${m === "lupa" ? "" : tabs}${forms[m]}</div>${perks()}</div>`);
+    return page("Akun", m === "daftar" ? "Buat akun" : m === "lupa" ? "Reset kata sandi" : "Masuk", `<div class="k-auth"><div>${m === "lupa" ? "" : tabs}${m === "lupa" ? "" : googleBtn(next)}${forms[m]}</div>${perks()}</div>`);
   }
   const name = U.user_metadata?.name || (U.email || "").split("@")[0];
   return page("Akun", `Halo, ${name}`, `<div class="k-tiles">
@@ -123,6 +149,8 @@ function viewAkun(q) {
       <div class="field"><label for="k-wa">WhatsApp (opsional, dipakai admin untuk menghubungi saat pengiriman)</label><input class="input" id="k-wa" value="" maxlength="30" inputmode="tel" placeholder="+62…"></div>
       <div class="err" id="k-err" role="alert"></div><button class="btn">Simpan</button> <button class="btn ghost" type="button" data-k="logout">Keluar</button>${ADMIN ? ` <a class="btn ghost" href="admin/">Panel admin</a>` : ""}</form>`);
 }
+const G_SVG = `<svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true"><path fill="#FFC107" d="M43.6 20.1H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 13 4 4 13 4 24s9 20 20 20 20-9 20-20c0-1.3-.1-2.3-.4-3.9z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-7.9l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.1H42V20H24v8h11.3c-.8 2.2-2.2 4.1-4.1 5.6l6.2 5.2C37 39.2 44 34 44 24c0-1.3-.1-2.3-.4-3.9z"/></svg>`;
+const googleBtn = (next) => `<button type="button" class="btn ghost k-google" data-k="google" data-next="${next}">${G_SVG}<span>Lanjutkan dengan Google</span></button><div class="k-or"><span>atau pakai email</span></div>`;
 const perks = () => `<aside class="summary k-perks"><img src="${LOGO_BIG}" alt="Logo KanasaToken" width="96" height="96"><h3>Kenapa punya akun?</h3><ul><li>Keranjang tersimpan di semua perangkat</li><li>Top up <b>KanasaToken</b> sekali, bayar produk kapan saja</li><li>Pantau pesanan: Menunggu Pembayaran → Menunggu Dikirim → Sudah Terkirim → Selesai</li></ul></aside>`;
 
 async function viewCart() {
@@ -219,6 +247,12 @@ async function onClick(ev) {
   if (k === "add") return addToCart(id);
   if (k === "rm") return removeFromCart(id);
   if (k === "reload") return H.rerender();
+  if (k === "google") {
+    store.set("kns_next", el.dataset.next || "akun"); el.disabled = true;
+    const { error } = await sb.auth.signInWithOAuth({ provider: "google", options: { redirectTo: location.origin + location.pathname } });
+    if (error) { el.disabled = false; $("#k-err") && ($("#k-err").textContent = /not enabled|unsupported/i.test(error.message) ? "Login Google belum diaktifkan oleh admin. Gunakan email dulu." : nice(error.message)); toast("Login Google belum tersedia."); }
+    return;
+  }
   if (k === "copy") { try { await navigator.clipboard.writeText(el.dataset.v); toast("Disalin.", "ok"); } catch { toast("Salin manual ya."); } return; }
   if (k === "logout") { await sb.auth.signOut(); toast("Kamu sudah keluar.", "ok"); location.hash = "#/"; return; }
   if (k === "pack") { $$(".k-pack").forEach((b) => b.setAttribute("aria-pressed", String(b === el))); $("#k-pack").value = id; const a = $("#k-amount"); if (a) { a.value = ""; $("#k-amount-rp").textContent = ""; } return; }

@@ -2,7 +2,7 @@
 import { sb, esc, toast, busy, must } from "./admin-lib.js";
 import { $, $$, money } from "./util.js";
 
-const TABS = [["", "Pesanan"], ["packs", "Paket & kurs KT"], ["users", "Pengguna & saldo"]];
+const TABS = [["", "Pesanan"], ["stats", "Ringkasan"], ["vouchers", "Voucher"], ["reviews", "Ulasan"], ["packs", "Paket & kurs KT"], ["users", "Pengguna & saldo"]];
 const SL = { menunggu_pembayaran: "Menunggu Pembayaran", menunggu_dikirim: "Menunggu Dikirim", sudah_terkirim: "Sudah Terkirim", selesai: "Selesai", dibatalkan: "Dibatalkan" };
 const dt = (v) => (v ? new Date(v).toLocaleString() : "—");
 const shell = (tab, body) => `<div class="bar"><h1>Shop orders</h1><a class="btn ghost sm" href="../#/store" target="_blank" rel="noopener">View store ↗</a></div>
@@ -11,7 +11,7 @@ const shell = (tab, body) => `<div class="bar"><h1>Shop orders</h1><a class="btn
 export async function viewShop(el, tab = "") {
   const t = TABS.some(([k]) => k === tab) ? tab : "";
   el.innerHTML = shell(t, '<div id="sbody"><div class="skeleton" style="height:10rem"></div></div>');
-  await { "": orders, packs, users }[t]($("#sbody", el));
+  await { "": orders, stats, vouchers, reviews, packs, users }[t]($("#sbody", el));
 }
 const reload = (tab) => viewShop($("#view"), tab);
 
@@ -80,4 +80,43 @@ async function users(el, q = "") {
     const d = prompt("Add (positive) or remove (negative) KanasaToken:", "10"); if (d === null) return; const n = parseInt(d, 10); if (!n) return toast("Enter a whole number.");
     const note = prompt("Note (shown in the buyer's history):", "Bonus dari admin"); if (note === null) return;
     await busy(b, async () => { const { error } = await sb.rpc("admin_token_adjust", { p_user: b.dataset.adj, p_delta: n, p_note: note }); if (error) return toast(error.message); toast("Balance updated.", "ok"); await users(el, q); }); };
+}
+
+const csvCell = (v) => `"${String(v ?? "").replace(/"/g, '""')}"`;
+async function stats(el) {
+  const d = must(await sb.rpc("admin_shop_stats")), tile = (v, l) => `<div class="stat"><b>${v}</b><span>${l}</span></div>`;
+  el.innerHTML = `<div class="stats">${tile(money(d.product_idr_30d), "Product sales (30 days)")}${tile(money(d.topup_idr_30d), "KT top-ups (30 days)")}${tile(d.orders_30d, "Orders (30 days)")}${tile(d.users, "Registered buyers")}</div>
+    <div class="stats" style="margin-top:1rem">${tile(d.to_verify, "Proofs to verify")}${tile(d.to_deliver, "Paid, waiting to send")}${tile(Number(d.tokens_in_wallets).toLocaleString(), "KT in wallets (owed)")}${tile(Number(d.tokens_sold).toLocaleString() + " / " + Number(d.tokens_spent).toLocaleString(), "KT sold / spent")}</div>
+    <div class="panel" style="margin-top:1.5rem"><h2>Top products (30 days)</h2>${d.top_products.length ? `<table class="t"><thead><tr><th>Product</th><th>Orders</th><th>Value</th></tr></thead><tbody>${d.top_products.map((t) => `<tr><td>${esc(t.title)}</td><td>${t.n}</td><td>${money(t.idr)}</td></tr>`).join("")}</tbody></table>` : `<p class="muted">No sales yet.</p>`}</div>
+    <div class="panel"><h2>Export</h2><p class="muted" style="font-size:.9rem">Download the latest 300 shop orders as a spreadsheet (CSV).</p><button class="btn" id="csv">Download CSV</button></div>`;
+  $("#csv", el).onclick = (e) => busy(e.target, async () => {
+    const list = must(await sb.rpc("admin_shop_orders", { p_status: null, p_limit: 300 }));
+    const rows = [["reference", "date", "type", "status", "buyer", "items", "total_idr", "tokens", "paid_with", "method"], ...list.map((o) => [o.reference, o.created_at, o.kind, o.status, o.buyer, o.items.map((i) => i.title).join(" | "), o.total_idr, o.total_tokens, o.pay_with, o.method])];
+    const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob(["\ufeff" + rows.map((r) => r.map(csvCell).join(",")).join("\n")], { type: "text/csv" })); a.download = `shop-orders-${new Date().toISOString().slice(0, 10)}.csv`; a.click(); URL.revokeObjectURL(a.href);
+  });
+}
+async function vouchers(el) {
+  const list = must(await sb.from("vouchers").select("*").order("created_at", { ascending: false }));
+  el.innerHTML = `<form id="vf" class="panel"><h2>New voucher</h2><div class="cols" style="gap:.8rem;flex-wrap:wrap;align-items:end">
+      <label class="field">Code <input class="input" name="code" required maxlength="24" placeholder="HEMAT10" style="text-transform:uppercase;max-width:10rem"></label>
+      <label class="field">Type <select class="input" name="kind"><option value="percent">Percent (%)</option><option value="fixed">Fixed (Rp)</option></select></label>
+      <label class="field">Value <input class="input" name="value" type="number" min="1" required style="max-width:7rem"></label>
+      <label class="field">Min. purchase (Rp) <input class="input" name="min" type="number" min="0" value="0" style="max-width:8rem"></label>
+      <label class="field">Max. discount (Rp) <input class="input" name="max" type="number" min="1" placeholder="optional" style="max-width:8rem"></label>
+      <label class="field">Total uses <input class="input" name="uses" type="number" min="1" placeholder="unlimited" style="max-width:8rem"></label>
+      <label class="field">Expires <input class="input" name="exp" type="date"></label><button class="btn">Create</button></div>
+    <p class="muted" style="font-size:.85rem">Each buyer can use a code once. A cancelled or expired unpaid order gives the use back.</p></form>
+    <div class="panel"><h2>Vouchers</h2>${list.length ? `<div class="tablewrap"><table class="t"><thead><tr><th>Code</th><th>Discount</th><th>Min.</th><th>Used</th><th>Expires</th><th>Active</th><th></th></tr></thead><tbody>${list.map((v) => `<tr><td class="mono"><b>${esc(v.code)}</b></td><td>${v.kind === "percent" ? v.value + "%" : money(v.value)}${v.max_discount ? ` (max ${money(v.max_discount)})` : ""}</td><td>${money(v.min_total)}</td><td>${v.used}${v.max_uses ? " / " + v.max_uses : ""}</td><td>${v.expires_at ? dt(v.expires_at) : "—"}</td>
+      <td><input type="checkbox" data-act="${esc(v.code)}" ${v.is_active ? "checked" : ""}></td><td><button class="btn ghost sm" data-del="${esc(v.code)}">Delete</button></td></tr>`).join("")}</tbody></table></div>` : `<p class="muted">No vouchers yet.</p>`}</div>`;
+  $("#vf", el).addEventListener("submit", async (e) => { e.preventDefault(); const f = e.target;
+    await busy($("button", f), async () => { const row = { code: f.code.value.trim().toUpperCase(), kind: f.kind.value, value: +f.value.value, min_total: +f.min.value || 0, max_discount: f.max.value ? +f.max.value : null, max_uses: f.uses.value ? +f.uses.value : null, expires_at: f.exp.value ? new Date(f.exp.value + "T23:59:59").toISOString() : null };
+      const { error } = await sb.from("vouchers").insert(row); if (error) return toast(/check/.test(error.message) ? "Check the code (3-24 letters/digits) and values." : error.message); toast("Voucher created.", "ok"); await reload("vouchers"); }); });
+  el.onclick = async (e) => { const d = e.target.closest("[data-del]"); if (!d || !confirm("Delete this voucher?")) return; const { error } = await sb.from("vouchers").delete().eq("code", d.dataset.del); if (error) return toast(error.message); reload("vouchers"); };
+  el.onchange = async (e) => { const c = e.target.closest("[data-act]"); if (!c) return; const { error } = await sb.from("vouchers").update({ is_active: c.checked }).eq("code", c.dataset.act); if (error) { toast(error.message); c.checked = !c.checked; } };
+}
+async function reviews(el) {
+  const list = must(await sb.rpc("admin_reviews", { p_limit: 150 }));
+  el.innerHTML = `<div class="panel"><h2>Product reviews</h2>${list.length ? `<div class="tablewrap"><table class="t"><thead><tr><th>Product</th><th>Rating</th><th>Comment</th><th>Buyer</th><th>Status</th><th></th></tr></thead><tbody>${list.map((r) => `<tr><td>${esc(r.product || "—")}</td><td>${"★".repeat(r.rating)}${"☆".repeat(5 - r.rating)}</td><td>${esc(r.comment || "")}</td><td>${esc(r.buyer || "")}<br><span class="muted">${dt(r.at)}</span></td><td><span class="pill">${r.status}</span></td>
+      <td><button class="btn ghost sm" data-id="${r.id}" data-h="${r.status === "published" ? 1 : 0}">${r.status === "published" ? "Hide" : "Show"}</button></td></tr>`).join("")}</tbody></table></div>` : `<p class="muted">Reviews written by buyers after delivery appear here. You can hide inappropriate ones.</p>`}</div>`;
+  el.onclick = async (e) => { const b = e.target.closest("[data-id]"); if (!b) return; await busy(b, async () => { const { error } = await sb.rpc("admin_review_set", { p_id: b.dataset.id, p_hidden: b.dataset.h === "1" }); if (error) return toast(error.message); reload("reviews"); }); };
 }

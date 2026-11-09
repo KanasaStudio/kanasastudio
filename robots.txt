@@ -1,5 +1,3 @@
 User-agent: *
-Allow: /
 Disallow: /admin/
-
-Sitemap: https://kanasastudio.github.io/kanasastudio/sitemap.xml
+Disallow: /share/

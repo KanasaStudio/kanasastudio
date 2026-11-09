@@ -28,3 +28,15 @@ Sebelum diaktifkan, tombol menampilkan pesan "Login Google belum diaktifkan" dan
 
 ## Header
 Ikon saja: suara, mata uang (Rp/$), keranjang, akun (klik → menu: saldo KT, pesanan, keranjang, profil, keluar). Menu teks otomatis jadi hamburger di bawah 1180px.
+
+## Fitur tambahan (v2)
+- **Notifikasi**: pembeli melihat lonceng di menu akun (`#/notifikasi`); admin dapat Discord saat ada pesanan/bukti bayar baru. **Email ke pembeli (opsional)**: edge function `shop-email` sudah ter-deploy. Set secrets `HOOK_SECRET`, `RESEND_API_KEY`, `EMAIL_FROM` (domain pengirim harus diverifikasi di Resend), lalu isi URL fungsi + HOOK_SECRET di Admin → Notifications → *Email to buyers*.
+- **Ulasan**: pembeli menulis ulasan di halaman Pesanan setelah produk terkirim; tampil di halaman produk. Admin bisa menyembunyikan di Shop orders → Ulasan.
+- **Voucher**: Admin → Shop orders → Voucher (persen/nominal, minimal belanja, kuota, kedaluwarsa; 1× per pembeli). Dipakai di keranjang.
+- **Ringkasan & CSV**: Admin → Shop orders → Ringkasan.
+- **Surat digital dibayar dengan KT**: tombol "Pay with KanasaToken" di hasil publish dan "My letters".
+- **Pencarian**: ikon 🔍 / tekan `/` (`#/cari`), mencari layanan, produk, portofolio, tools.
+- **Syarat KanasaToken**: `#/syarat-kt` (teks bawaan; bisa ditimpa lewat Site editor → legal → `kt`).
+- **Turnstile (anti-bot)**: isi `TURNSTILE_SITEKEY` di `js/config.js` dan aktifkan *Captcha protection* (Cloudflare Turnstile + secret) di Supabase Auth → Attack Protection.
+- **Analitik**: isi `ANALYTICS.plausible` (domain) atau `ANALYTICS.cloudflare` (token) di `js/config.js`.
+- **SEO**: situs memakai rute `#/`, yang tidak diindeks Google per halaman. `robots.txt` ditambahkan; indeks per produk butuh halaman statis (belum ada).

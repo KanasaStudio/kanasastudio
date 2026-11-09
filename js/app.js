@@ -4,11 +4,11 @@ import { applyTheme } from "./theme.js";
 import { getRate } from "./fx.js";
 import * as cart from "./cart.js";
 import { initSfx, play as sfx } from "./sfx.js";
-import { initPreviews } from "./preview.js?v=20261107d";
-import { initLetters, viewLetters, wireLetters, lettersStrip, warmLetters } from "./letters.js?v=20261107d";
-import { initOffline, warmOffline } from "./offline.js?v=20261107d";
-import { initShop, viewShop, wireShop, isShopRoute, cartBtn } from "./shop.js?v=20261107d";
-import { initNews, viewNews, newsStrip, warmNews } from "./news.js?v=20261107d";
+import { initPreviews } from "./preview.js?v=20261109a";
+import { initLetters, viewLetters, wireLetters, lettersStrip, warmLetters } from "./letters.js?v=20261109a";
+import { initOffline, warmOffline } from "./offline.js?v=20261109a";
+import { initShop, viewShop, wireShop, isShopRoute, cartBtn, productReviews } from "./shop.js?v=20261109a";
+import { initNews, viewNews, newsStrip, warmNews } from "./news.js?v=20261109a";
 
 const S = {
   settings: {}, services: null, projects: null,
@@ -57,8 +57,8 @@ async function loadProjects(force) {
 function renderChrome() {
   const b = set("brand"), nav = set("nav", []), f = set("footer"), soc = set("socials", []);
   $("#brand").innerHTML = `<img src="${esc(safeUrl(b.logo_url))}" alt="" width="30" height="30"><span>${esc(b.name || "Studio")}${b.partner ? ` <small>× ${esc(b.partner)}</small>` : ""}</span>`;
-  let navL = Array.isArray(nav) ? [...nav] : []; navL = navL.filter((n) => !/^#\/order\/?$/.test(n.href || "")); if (!navL.some((n) => n.href === "#/store")) navL.splice(Math.min(2, navL.length), 0, { href: "#/store", label: "Store" }); if (!navL.some((n) => n.href === "#/letters")) navL.push({ href: "#/letters", label: "Letters" });
-  $("#nav").innerHTML = navL.map((n) => `<a href="${esc(safeUrl(n.href))}">${esc(n.label)}</a>`).join("") + `<div class="nav-fx"><span class="muted">Currency</span><div class="seg" id="fx2" role="group" aria-label="Display currency" hidden><button data-cur="IDR" aria-pressed="true">IDR</button><button data-cur="USD" aria-pressed="false">USD</button></div></div>`;
+  let navL = Array.isArray(nav) ? [...nav] : []; navL = navL.filter((n) => !/^#\/order\/?$/.test(n.href || "")); if (!navL.some((n) => n.href === "#/cari")) navL.push({ href: "#/cari", label: "Cari", cls: "nav-search" }); if (!navL.some((n) => n.href === "#/store")) navL.splice(Math.min(2, navL.length), 0, { href: "#/store", label: "Store" }); if (!navL.some((n) => n.href === "#/letters")) navL.push({ href: "#/letters", label: "Letters" });
+  $("#nav").innerHTML = navL.map((n) => `<a href="${esc(safeUrl(n.href))}"${n.cls ? ` class="${n.cls}"` : ""}>${esc(n.label)}</a>`).join("") + `<div class="nav-fx"><span class="muted">Currency</span><div class="seg" id="fx2" role="group" aria-label="Display currency" hidden><button data-cur="IDR" aria-pressed="true">IDR</button><button data-cur="USD" aria-pressed="false">USD</button></div></div>`;
   const lg = set("legal", {});
   $("#footer-links").innerHTML = Object.entries(lg).map(([k, l]) => `<li><a href="#/legal/${esc(k)}">${esc(l.title)}</a></li>`).join("") + soc.map((s) => `<li><a href="${esc(safeUrl(s.url))}" target="_blank" rel="noopener noreferrer">${esc(s.label)}</a></li>`).join("");
   $("#footer-text").textContent = f.text || "";
@@ -242,6 +242,23 @@ async function viewPricing() {
     <p style="margin-top:2rem"><a class="btn" href="#/services">Choose a service</a></p>
     <h2 style="font-size:1.25rem;margin:4rem 0 .5rem">Price list poster &amp; service illustration</h2><p class="muted" style="margin-bottom:1.5rem">Reference images (tap to open full size). If a price differs from the poster, the table above is the current one.</p>
     <div class="two">${fig(a, pr.price_image_alt || "Price list")}${fig(b, pr.illustration_alt || "Service illustration")}</div></div>`;
+}
+async function viewSearch(q) {
+  setMeta("Cari", "Cari layanan, produk, tools, dan portofolio.");
+  const raw = (q.q || "").trim(), term = raw.toLowerCase();
+  const form = `<form class="search-form" id="searchform" role="search"><input class="input" id="sq" type="search" value="${esc(raw)}" placeholder="Cari layanan, produk, tools, portofolio…" aria-label="Cari" autocomplete="off"><button class="btn">Cari</button></form>`;
+  const head = `<div class="container page"><div class="page-head"><span class="eyebrow">Cari</span><h1 style="margin-top:1rem;font-size:var(--fs-h2)">Cari di situs</h1></div>${form}`;
+  if (term.length < 2) return head + `<p class="muted" style="margin-top:1.5rem">Ketik minimal 2 huruf. Tips: tekan <kbd>/</kbd> di halaman mana pun untuk membuka pencarian.</p></div>`;
+  const [svc, st, rs, pj] = await Promise.all([loadServices().catch(() => []), loadStore().catch(() => ({ products: [] })), loadRes().catch(() => ({ items: [] })), loadProjects().catch(() => [])]);
+  const has = (...f) => f.some((x) => String(Array.isArray(x) ? x.join(" ") : x ?? "").toLowerCase().includes(term));
+  const G = [
+    ["Layanan", svc.filter((x) => has(x.name, x.category, x.summary, x.description)).map((x) => [`#/services/${x.slug}`, x.name, x.category])],
+    ["Store", st.products.filter((x) => has(x.title, x.summary, x.description, x.tags)).map((x) => [`#/store/${x.slug}`, x.title, pPrice(x)])],
+    ["Portofolio", pj.filter((x) => has(x.title, x.category, x.summary, x.description)).map((x) => [`#/portfolio/${x.slug}`, x.title, x.category])],
+    ["Tools creator", rs.items.filter((x) => has(x.title, x.description, x.tags)).map((x) => [safeUrl(x.url), x.title, x.description, true])],
+  ].filter(([, l]) => l.length);
+  const body = G.length ? G.map(([t, l]) => `<h2 class="search-h">${t} <span class="muted">${l.length}</span></h2><ul class="search-list">${l.slice(0, 12).map(([h, a, b, ext]) => `<li><a href="${esc(h)}"${ext ? ' target="_blank" rel="noopener noreferrer"' : ""}><b>${esc(a)}</b><span class="muted">${esc(b || "")}</span></a></li>`).join("")}</ul>`).join("") : emptyBox("Tidak ada hasil", `Tidak ditemukan hasil untuk “${raw}”. Coba kata lain.`);
+  return head + body + `</div>`;
 }
 async function viewPortfolio() {
   setMeta("Portfolio", "Selected 3D models, rigs and animation.");
@@ -443,6 +460,7 @@ async function viewProduct(slug) {
   if (!p) return notFound();
   setMeta(p.title, p.summary || "");
   const c = cats.find((x) => x.id === p.category_id), free = +p.price === 0, imgs = [p.cover_url, ...(p.gallery || [])].map(safeUrl).filter(Boolean);
+  const rev = free ? "" : await productReviews(p.id);
   const meta = [["Category", c?.name], ["Version", p.version], ["Works with", p.compatibility], ["File", p.file_info], ["License", p.license_note]].filter((x) => x[1]);
   return `<div class="container page">${shareBtn("store", p.slug)}<a class="eyebrow" href="#/store">← Store</a>
     <div class="two" style="margin-top:1.5rem"><div>${safeUrl(p.preview_video_url) ? `<video class="prod-main" src="${esc(safeUrl(p.preview_video_url))}" ${imgs[0] ? `poster="${esc(imgs[0])}"` : ""} controls muted loop playsinline preload="none" aria-label="Preview video" style="margin-bottom:.8rem"></video>` : ""}${imgs.length ? `<img class="prod-main" id="pmain" src="${esc(imgs[0])}" alt="${esc(p.cover_alt || p.title)}">${imgs.length > 1 ? `<div class="prod-thumbs">${imgs.map((u, i) => `<button type="button" class="chip" data-pimg="${esc(u)}" aria-label="Image ${i + 1}"><img src="${esc(u)}" alt="" loading="lazy"></button>`).join("")}</div>` : ""}` : `<div class="prod-main"></div>`}</div>
@@ -453,7 +471,7 @@ async function viewProduct(slug) {
         ${meta.length ? `<dl class="specs" style="margin-top:1.5rem">${meta.map(([k, v]) => `<div><dt>${esc(k)}</dt><dd>${esc(v)}</dd></div>`).join("")}</dl>` : ""}
         ${(p.tags || []).length ? `<p style="margin-top:1rem">${p.tags.map((t) => `<span class="tag">${esc(t)}</span>`).join(" ")}</p>` : ""}
         ${p.description ? `<div style="margin-top:1.5rem">${paragraphs(p.description)}</div>` : ""}
-        <p class="muted" style="font-size:.8125rem;margin-top:1.5rem">By downloading or buying you agree to the <a href="#/legal/terms">Terms</a> and <a href="#/legal/refund">Refund Policy</a>.</p></div></div></div>`;
+        <p class="muted" style="font-size:.8125rem;margin-top:1.5rem">By downloading or buying you agree to the <a href="#/legal/terms">Terms</a> and <a href="#/legal/refund">Refund Policy</a>.</p></div></div>${rev}</div>`;
 }
 function buyForm(slug) {
   const p = S.store.products.find((x) => x.slug === slug), cl = S.order.client;
@@ -591,6 +609,7 @@ async function route(keep) {
     else if (parts[0] === "letters") html = (await viewLetters(parts.slice(1), q)) ?? notFound();
     else if (parts[0] === "legal") html = await legalView(parts[1]);
     else if (parts[0] === "about") html = viewAbout();
+    else if (parts[0] === "cari") html = await viewSearch(q);
     else if (isShopRoute(parts[0])) html = await viewShop(parts, q);
     else if (parts[0] === "order") html = await viewOrder();
     else if (parts[0] === "track") html = await viewTrack(q);
@@ -665,6 +684,8 @@ document.addEventListener("input", (ev) => {
   if (t.dataset.line) { cart.update(t.dataset.line, { brief: { ...(cart.all().find((x) => x.uid === t.dataset.line)?.brief || {}), [t.dataset.key]: t.value } }); }
 });
 document.addEventListener("change", (ev) => { const t = ev.target; if (t.dataset.act === "qty") { cart.update(t.dataset.id, { quantity: Math.max(1, Math.min(50, +t.value || 1)) }); } });
+document.addEventListener("submit", (ev) => { if (ev.target.id === "searchform") { ev.preventDefault(); location.hash = "#/cari?q=" + encodeURIComponent($("#sq").value.trim()); } });
+document.addEventListener("keydown", (e) => { if (e.key === "/" && !/^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement?.tagName) && !document.activeElement?.isContentEditable && !e.ctrlKey && !e.metaKey) { e.preventDefault(); if (location.hash.startsWith("#/cari")) $("#sq")?.focus(); else location.hash = "#/cari"; } });
 document.addEventListener("submit", async (ev) => {
   if (ev.target.id === "trackform") { ev.preventDefault(); S.track.ref = $("#tr-ref").value.trim(); S.track.token = $("#tr-tok").value.trim(); S.track.loading = true; await doTrack(); return rerender(); }
   if (ev.target.id === "payform") {
@@ -754,3 +775,11 @@ async function refreshFx(force) { const r = await getRate(force); if (r) { S.fx.
   idle(() => warmOffline([loadSettings, () => loadServices(true), () => loadProjects(true), () => loadStore(true), () => loadRes(true), warmNews, warmLetters]), { timeout: 8000 });
   refreshFx(); setInterval(() => refreshFx(true), 30 * 60 * 1000);   // live rate, refreshed every 30 min
 })();
+
+/* ---------- optional analytics (set IDs in js/config.js) ---------- */
+import("./config.js").then(({ ANALYTICS: A }) => {
+  if (!A || new URLSearchParams(location.search).has("preview")) return;
+  const add = (src, attrs) => { const el = document.createElement("script"); el.defer = true; el.src = src; Object.entries(attrs).forEach(([k, v]) => el.setAttribute(k, v)); document.head.append(el); };
+  if (A.plausible) add("https://plausible.io/js/script.hash.js", { "data-domain": A.plausible });
+  if (A.cloudflare) add("https://static.cloudflareinsights.com/beacon.min.js", { "data-cf-beacon": JSON.stringify({ token: A.cloudflare }) });
+}).catch(() => {});

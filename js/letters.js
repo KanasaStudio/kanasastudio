@@ -215,6 +215,7 @@ function resultView() {
    <div class="lt-qr" id="ltqr" aria-label="QR code for the link"><span class="muted">Making QR code…</span></div>
    <div class="lt-private"><h3>Your private edit link</h3><p class="muted">Only you should have this. It lets you change or delete the letter later. It is also saved in <a href="#/letters/mine">My letters</a> on this device.</p>
     <div class="lt-copy"><input class="input" readonly value="${esc(ed)}" aria-label="Private edit link"><button type="button" class="btn ghost" data-ltact="copy" data-v="${esc(ed)}">Copy</button></div></div>
+   ${paid ? "" : `<p><button type="button" class="btn" data-ltact="paykt" data-id="${esc(r.public_id)}" data-tok="${esc(r.edit_token)}">Pay with KanasaToken</button> <span class="muted">Instant activation if your balance is enough. <a href="#/dompet">Top up</a></span></p>`}
    <div class="lt-nav"><a class="btn ghost" href="#/letters">Make another</a><a class="btn" href="#/letters/mine">My letters</a></div>`;
 }
 let qrP = null;
@@ -305,6 +306,7 @@ async function onClick(e) {
   if (a === "mode") { const host = b.closest(".lt-modal, .lt-ed-prev"); $(".lt-frame", host).dataset.mode = v; $$("[data-ltact=mode]", host).forEach((x) => x.setAttribute("aria-pressed", x === b)); if (host.classList.contains("lt-ed-prev")) $("#lted").dataset.wide = v === "desktop" ? "1" : ""; return; }
   if (a === "copy") { try { await navigator.clipboard.writeText(v); toast("Copied.", "ok"); } catch { toast("Select the link and copy it manually."); } return; }
   if (a === "share") { try { await navigator.share({ title: "A gift for you", text: "I made something for you.", url: v }); } catch { /* cancelled */ } return; }
+  if (a === "paykt") return payKT(b);
   if (a === "mdel" || a === "mvis") return mineAction(a, b);
   if (!ED) return;
   if (a === "go") return go(v);
@@ -370,9 +372,15 @@ async function fillMine() {
     if (!data) { s.textContent = "This letter no longer exists."; a.innerHTML = `<button type="button" class="btn ghost sm" data-ltact="mdel" data-id="${esc(id)}" data-gone="1">Remove from list</button>`; continue; }
     const exp = data.expires_at ? new Date(data.expires_at) : null, expired = exp && exp < new Date();
     s.textContent = `${expired ? "Expired" : ORD[data.order_status] || data.order_status}${data.order_ref && data.order_status === "pending_payment" ? ` (${data.order_ref}, ${money(data.price_idr)})` : ""} · ${data.visibility === "public" ? "Public link" : "Private"} · ${data.views} view${data.views === 1 ? "" : "s"}${exp && !expired ? ` · until ${fmtDate(exp)}` : ""}`;
-    const url = linkOf(id);
-    a.innerHTML = `<a class="btn ghost sm" href="${esc(url)}" target="_blank" rel="noopener">Open</a><button type="button" class="btn ghost sm" data-ltact="copy" data-v="${esc(url)}">Copy link</button><a class="btn ghost sm" href="#/letters/edit/${esc(id)}">Edit</a><button type="button" class="btn ghost sm" data-ltact="mvis" data-id="${esc(id)}" data-vis="${data.visibility}">${data.visibility === "public" ? "Make private" : "Make public"}</button><button type="button" class="btn ghost sm" data-ltact="mdel" data-id="${esc(id)}" data-name="${esc(data.content?.title || "this letter")}">Delete</button>`;
+    const url = linkOf(id), kt = data.order_status === "pending_payment" && data.price_idr > 0 ? `<button type="button" class="btn sm" data-ltact="paykt" data-id="${esc(id)}" data-tok="${esc(me.token)}">Pay with KanasaToken</button>` : "";
+    a.innerHTML = kt + `<a class="btn ghost sm" href="${esc(url)}" target="_blank" rel="noopener">Open</a><button type="button" class="btn ghost sm" data-ltact="copy" data-v="${esc(url)}">Copy link</button><a class="btn ghost sm" href="#/letters/edit/${esc(id)}">Edit</a><button type="button" class="btn ghost sm" data-ltact="mvis" data-id="${esc(id)}" data-vis="${data.visibility}">${data.visibility === "public" ? "Make private" : "Make public"}</button><button type="button" class="btn ghost sm" data-ltact="mdel" data-id="${esc(id)}" data-name="${esc(data.content?.title || "this letter")}">Delete</button>`;
   }
+}
+async function payKT(b) {
+  if (!confirm("Pay this letter with your KanasaToken balance?")) return;
+  b.disabled = true; const { error } = await sb.rpc("letter_pay_tokens", { p_id: b.dataset.id, p_token: b.dataset.tok });
+  if (error) { b.disabled = false; if (/Masuk ke akun/i.test(error.message)) { toast("Sign in first to pay with KanasaToken."); location.hash = "#/akun?next=letters/mine"; return; } return toast(error.message.replace(/^Saldo KanasaToken kurang/, "Not enough KanasaToken")); }
+  toast("Paid with KanasaToken. Your letter is now live!", "ok"); b.textContent = "Paid ✓"; if (location.hash.includes("/mine")) route2();
 }
 async function mineAction(a, b) {
   const id = b.dataset.id, me = mine().find((x) => x.id === id);

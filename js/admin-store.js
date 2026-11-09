@@ -103,10 +103,15 @@ export async function viewNotify(el) {
     ${fld("site_url", "Your website address (so alerts link to the admin)", c.site_url ?? "", { type: "url", attrs: 'placeholder="https://kanasastudio.github.io/kanasastudio"' })}
     ${chk("enabled", "Alerts enabled", c.enabled)}
     <button class="btn sm" value="save">Save</button> <button class="btn ghost sm" value="test" type="button" id="tst">Send test message</button></form>
+  <form id="ef" class="panel"><h2>Email to buyers (optional)</h2><p class="muted" style="font-size:.9rem">Buyers always get in-site notifications (bell in their account menu). To also email them when their order changes, deploy is already done: set the secrets <code>HOOK_SECRET</code>, <code>RESEND_API_KEY</code>, <code>EMAIL_FROM</code> in Supabase → Edge Functions → Secrets, then paste the function URL and the same HOOK_SECRET below. See docs/SHOP.md.</p>
+    ${fld("email_hook_url", "Email function URL", c.email_hook_url ?? "", { type: "url", attrs: 'placeholder="https://geroipkbzmbkigzwjdok.supabase.co/functions/v1/shop-email" maxlength=300' })}${fld("email_hook_secret", "HOOK_SECRET (same value as the secret)", c.email_hook_secret ?? "", { type: "password", attrs: 'maxlength=100 autocomplete="off"' })}<button class="btn">Save email settings</button></form>
   <div class="panel"><h2>How to get the webhook</h2><ol style="line-height:1.8"><li>Open Discord → your server → pick a private channel (only you and your staff).</li><li>Channel settings (gear) → <b>Integrations</b> → <b>Webhooks</b> → <b>New Webhook</b>.</li><li>Name it, then <b>Copy Webhook URL</b> and paste it above.</li><li>Press Save, then <b>Send test message</b>. A message should appear within a few seconds.</li></ol>
   <p class="muted" style="font-size:.85rem">Anyone with the webhook URL can post to that channel, so never share it. If it leaks, delete the webhook in Discord and create a new one.</p></div>`;
   $("#nf").onsubmit = (e) => { e.preventDefault(); const f = e.target; busy(e.submitter || $("#nf button"), async () => {
     const url = f.discord_webhook.value.trim(); if (url && !/^https:\/\/(discord|discordapp)\.com\/api\/webhooks\//.test(url)) throw new Error("That does not look like a Discord webhook URL.");
     must(await sb.from("notify_config").update({ discord_webhook: url || null, site_url: f.site_url.value.trim().replace(/\/$/, "") || null, enabled: f.enabled.checked }).eq("id", 1)); toast("Saved.", "ok"); }); };
   $("#tst").onclick = (e) => busy(e.target, async () => { must(await sb.rpc("admin_test_notify")); toast("Test sent. Check your Discord channel in a few seconds. Save first if you just changed the URL.", "ok"); });
+  $("#ef").onsubmit = (e) => { e.preventDefault(); const f = e.target; busy($("button", f), async () => {
+    const u = f.email_hook_url.value.trim(); if (u && !/^https:\/\/[^\s]+$/.test(u)) throw new Error("The function URL must start with https://");
+    must(await sb.from("notify_config").update({ email_hook_url: u || null, email_hook_secret: f.email_hook_secret.value.trim() || null }).eq("id", 1)); toast("Email settings saved.", "ok"); }); };
 }

@@ -147,3 +147,68 @@
 /* result / editor page: breathing room under the sticky header, and the QR row aligned to the top */
 .lt-ed { padding-top: clamp(1.75rem, 4vw, 3rem); }
 .lt-qr { align-items: flex-start; }
+
+/* motion-profile signature loops on the template thumbnails (two <b> overlays per card; see js/letter/profiles.js) */
+.ltm-m b { position: absolute; display: block; pointer-events: none; z-index: 4; }
+.ltm-rose-wax b { width: 7px; height: 10px; border-radius: 50% 0; background: color-mix(in srgb, var(--p) 60%, #e0485e); top: -12%; left: 30%; animation: tmFall 3.4s linear infinite; } .ltm-rose-wax b + b { left: 68%; animation-delay: 1.7s; }
+.ltm-wind-meadow b { bottom: 0; left: 18%; width: 2px; height: 34%; background: #6b8f5a; transform-origin: bottom; animation: tmSway 2.2s ease-in-out infinite alternate; } .ltm-wind-meadow b + b { left: 80%; height: 24%; animation-delay: -1s; }
+.ltm-wind-meadow b::after { content: ""; position: absolute; top: -5px; left: -4px; width: 10px; height: 10px; border-radius: 50%; background: radial-gradient(circle, #ffd76a 0 30%, #fff 32%); }
+.ltm-gold-ribbon b { left: 28%; right: 28%; top: 49%; height: 3px; background: linear-gradient(90deg, #a07a24, #f3d98a, #a07a24); }
+.ltm-gold-ribbon b + b { inset: 0; height: auto; background: linear-gradient(105deg, transparent 40%, rgba(255,240,200,.5) 50%, transparent 60%) -150% 0 / 250% 100% no-repeat; animation: tmShine 3s ease-in-out infinite; }
+.ltm-dusk-lamp b { left: 50%; bottom: -40%; width: 90%; aspect-ratio: 1; margin-left: -45%; border-radius: 50%; background: radial-gradient(circle, rgba(255,190,110,.5), transparent 65%); animation: tmPulse 2.6s ease-in-out infinite alternate; }
+.ltm-dusk-lamp b + b { width: 5px; height: 5px; aspect-ratio: auto; margin: 0; left: 20%; bottom: 30%; background: #ffd27a; box-shadow: 0 0 8px 3px rgba(255,210,122,.6); animation: tmFly 4s ease-in-out infinite; }
+.ltm-vine-fold b { left: 33%; top: 42%; height: 3px; width: 34%; background: var(--paper); transform-origin: left; animation: tmType 2.4s steps(7) infinite; z-index: 5; }
+.ltm-vine-fold b + b { left: 10px; top: 20%; width: 14px; height: 8px; border-radius: 0 100%; background: #4d6b4a; transform-origin: left; animation: tmPulse 2s ease-in-out infinite alternate; }
+.ltm-hop-note i { animation: tmHop 1.2s cubic-bezier(.3,0,.3,1) infinite; }
+.ltm-line-heart b { left: 18%; width: 64%; top: 78%; height: 2px; background: var(--a); transform-origin: left; animation: tmDraw 2.8s ease-in-out infinite; }
+.ltm-line-heart b + b { left: 45%; top: 64%; width: 10%; height: auto; aspect-ratio: 1; border: 2px solid var(--a); border-width: 2px 0 0 2px; border-radius: 50% 0; background: none; rotate: 45deg; animation: tmPulse 1.4s ease-in-out infinite alternate; }
+.ltm-sakura-drift b { top: -10%; left: 10%; width: 9px; height: 7px; border-radius: 50% 0 50% 50%; background: #f3a0b8; animation: tmDrift 4s linear infinite; } .ltm-sakura-drift b + b { left: 45%; animation-delay: 2s; }
+.ltm-gold-night b { top: 14%; left: 80%; width: 44px; height: 1.5px; background: linear-gradient(90deg, #fff6d8, transparent); rotate: -25deg; animation: tmShoot 3.2s ease-in infinite; }
+.ltm-gold-night b + b { top: 30%; left: 30%; width: 4px; height: 4px; border-radius: 50%; background: #f3d98a; box-shadow: 0 0 8px 2px rgba(243,217,138,.8); rotate: 0deg; animation: tmPulse 1.6s ease-in-out infinite alternate; }
+.ltm-rain-ink b { inset: 0; background: repeating-linear-gradient(100deg, transparent 0 9px, rgba(220,230,255,.28) 9px 10px); animation: tmRain .7s linear infinite; }
+.ltm-rain-ink b + b { inset: auto; left: 50%; bottom: 18%; width: 30px; height: 8px; margin-left: -15px; border: 1px solid rgba(220,230,255,.55); border-radius: 50%; background: none; animation: tmRip 2.2s ease-out infinite; }
+.ltm-aurora-shuffle b { left: -30%; top: -30%; width: 110%; height: 90%; border-radius: 50%; background: radial-gradient(ellipse, color-mix(in srgb, var(--a) 45%, transparent), transparent 65%); animation: tmAur 5s ease-in-out infinite alternate; }
+.ltm-aurora-shuffle b + b { left: 30%; top: 30%; background: radial-gradient(ellipse, color-mix(in srgb, var(--p) 55%, transparent), transparent 65%); animation-delay: -2.5s; }
+.ltm-ink-botanical b { left: 16%; bottom: 10%; width: 2px; height: 46%; background: var(--p); rotate: 18deg; transform-origin: bottom; animation: tmGrow 3s ease-in-out infinite; }
+.ltm-ink-botanical b + b { left: 21%; bottom: 36%; width: 14px; height: 8px; border: 1.5px solid var(--p); border-radius: 0 100%; background: none; rotate: -20deg; }
+.ltm-stamp-tape b { right: 14%; top: 12%; width: 22%; aspect-ratio: 1; border: 3px double var(--a); border-radius: 50%; rotate: -14deg; animation: tmStamp 2.6s ease-out infinite; }
+.ltm-stamp-tape b + b { right: auto; left: 20%; top: 18%; width: 18%; height: 7%; aspect-ratio: auto; border: 0; border-radius: 0; background: color-mix(in srgb, var(--a) 70%, #fff); opacity: .9; animation: none; }
+.ltm-album-flip b { left: 50%; top: 24%; width: 20%; height: 50%; background: var(--paper); transform-origin: left; box-shadow: 0 4px 10px rgba(0,0,0,.2); animation: tmFlip 2.6s ease-in-out infinite; }
+.ltm-album-flip b + b { animation-delay: .3s; filter: brightness(.94); }
+.ltm-sticker-pop b { left: 18%; top: 16%; width: 26px; height: 26px; background: var(--a); clip-path: polygon(50% 0, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%); animation: tmSpin 1.6s cubic-bezier(.3,1.6,.5,1) infinite; }
+.ltm-sticker-pop b + b { left: 72%; top: 60%; width: 18px; height: 18px; clip-path: none; border-radius: 50%; border: 3px dashed var(--p); background: none; animation-delay: .5s; }
+.ltm-cap-toss b { left: 46%; bottom: -12%; width: 24px; height: 10px; background: #141c33; box-shadow: 0 0 0 1px #d9b45a; animation: tmToss 2.6s ease-out infinite; } .ltm-cap-toss b + b { left: 28%; animation-delay: 1.1s; }
+.ltm-peony-bloom b { left: 50%; top: 40%; width: 34%; aspect-ratio: 1; margin: -17% 0 0 -17%; border-radius: 50%; background: radial-gradient(circle, #fff3c4 0 12%, color-mix(in srgb, var(--p) 55%, #fff) 14% 46%, transparent 48%), repeating-conic-gradient(var(--p) 0 18deg, color-mix(in srgb, var(--p) 70%, #fff) 18deg 36deg); -webkit-mask: radial-gradient(circle, #000 66%, transparent 70%); mask: radial-gradient(circle, #000 66%, transparent 70%); animation: tmBloom 2.6s cubic-bezier(.3,1.4,.5,1) infinite; }
+.ltm-peony-bloom b + b { display: none; }
+.ltm-shake-burst i { animation: tmShake 1.8s ease-in-out infinite; }
+.ltm-shake-burst b { left: 40%; top: 30%; width: 6px; height: 10px; background: var(--a); animation: tmPop 1.8s ease-out infinite; } .ltm-shake-burst b + b { left: 56%; background: var(--p); animation-delay: .1s; }
+.ltm-door-box b { left: 42%; top: 40%; width: 16px; height: 16px; background: var(--a); clip-path: polygon(50% 0, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%); animation: tmHopS 1.6s ease-in-out infinite; } .ltm-door-box b + b { left: 54%; border-radius: 50%; clip-path: none; background: var(--p); animation-delay: .8s; }
+.ltm-scroll-roll b { left: 26%; right: 26%; top: 40%; height: 16%; background: var(--paper); border-left: 5px solid #d9b45a; border-right: 5px solid #d9b45a; animation: tmUnroll 2.8s cubic-bezier(.6,0,.2,1) infinite; }
+.ltm-scroll-roll b + b { inset: 0; height: auto; border: 0; background: linear-gradient(120deg, transparent 40%, rgba(245,197,66,.3) 50%, transparent 60%) -150% 0 / 250% 100% no-repeat; animation: tmShine 3s ease-in-out infinite; }
+.ltm-wish-smoke b { left: 18%; bottom: -20%; width: 18px; height: 22px; border-radius: 50%; background: var(--p); animation: tmBal 3.4s ease-in infinite; } .ltm-wish-smoke b + b { left: 74%; background: var(--a); animation-delay: 1.6s; }
+.ltm-wish-smoke b::after { content: ""; position: absolute; left: 50%; top: 100%; width: 1px; height: 16px; background: currentColor; opacity: .4; }
+@keyframes tmFall { to { transform: translateY(240px) rotate(320deg); } }
+@keyframes tmSway { from { rotate: -10deg; } to { rotate: 10deg; } }
+@keyframes tmShine { to { background-position: 150% 0; } }
+@keyframes tmPulse { from { opacity: .35; scale: .85; } to { opacity: 1; scale: 1.1; } }
+@keyframes tmFly { 25% { translate: 40px -20px; } 50% { translate: 90px 10px; } 75% { translate: 50px -30px; } }
+@keyframes tmType { 0% { transform: scaleX(0); } 80%, 100% { transform: scaleX(1); } }
+@keyframes tmHop { 0%, 100% { transform: translateY(0) scale(1.04, .94); } 45% { transform: translateY(-14px) rotate(-3deg); } 70% { transform: scale(1.06, .92); } }
+@keyframes tmDraw { 0% { transform: scaleX(0); opacity: 1; } 60% { transform: scaleX(1); opacity: 1; } 100% { transform: scaleX(1); opacity: 0; } }
+@keyframes tmDrift { to { transform: translate(120px, 220px) rotate(260deg); } }
+@keyframes tmShoot { 0%, 60% { transform: translate(0, 0); opacity: 0; } 65% { opacity: 1; } 100% { transform: translate(-150px, 70px); opacity: 0; } }
+@keyframes tmRain { to { background-position: -12px 60px; } }
+@keyframes tmRip { from { scale: .2; opacity: 1; } to { scale: 2.6; opacity: 0; } }
+@keyframes tmAur { to { translate: 30% 20%; rotate: 25deg; } }
+@keyframes tmGrow { 0% { transform: scaleY(0); } 60%, 100% { transform: scaleY(1); } }
+@keyframes tmStamp { 0% { transform: scale(2.4); opacity: 0; } 14% { transform: scale(.92); opacity: 1; } 20%, 100% { transform: none; opacity: 1; } }
+@keyframes tmFlip { 0%, 15% { transform: perspective(300px) rotateY(0); } 60%, 100% { transform: perspective(300px) rotateY(-180deg); } }
+@keyframes tmSpin { 0% { transform: scale(0) rotate(-90deg); } 40%, 80% { transform: scale(1) rotate(10deg); } 100% { transform: scale(0) rotate(90deg); } }
+@keyframes tmToss { 0% { transform: translateY(0) rotate(0); opacity: 1; } 70% { transform: translateY(-150px) rotate(400deg); opacity: 1; } 100% { transform: translateY(-120px) rotate(460deg); opacity: 0; } }
+@keyframes tmBloom { 0% { transform: scale(0) rotate(-60deg); } 40%, 85% { transform: scale(1) rotate(0); } 100% { transform: scale(0); } }
+@keyframes tmShake { 0%, 50%, 100% { transform: none; } 60% { transform: rotate(-4deg); } 70% { transform: rotate(4deg); } 80% { transform: rotate(-3deg); } 90% { transform: rotate(3deg); } }
+@keyframes tmPop { 0%, 90% { transform: none; opacity: 0; } 92% { opacity: 1; } 100% { transform: translate(var(--tx, -30px), -60px) rotate(200deg); opacity: 0; } }
+@keyframes tmHopS { 0%, 100% { transform: translate(0, 0); } 50% { transform: translate(0, -46px) rotate(140deg); } }
+@keyframes tmUnroll { 0% { transform: scaleX(0); } 50%, 85% { transform: scaleX(1); } 100% { transform: scaleX(0); } }
+@keyframes tmBal { to { transform: translateY(-260px) rotate(8deg); } }
+@media (prefers-reduced-motion: reduce) { .ltm-m b, .ltm-m i { animation: none !important; } }

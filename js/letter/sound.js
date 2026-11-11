@@ -5,9 +5,9 @@
 const SCALES = [[0, 4, 7, 12], [0, 3, 7, 10], [0, 2, 7, 9], [0, 5, 7, 12], [0, 4, 9, 11], [0, 3, 5, 10]];
 const hue = (hex) => { const n = parseInt(String(hex).replace("#", ""), 16) || 0, r = (n >> 16) / 255, g = ((n >> 8) & 255) / 255, b = (n & 255) / 255, m = Math.max(r, g, b), d = m - Math.min(r, g, b); if (!d) return 0; const h = m === r ? ((g - b) / d) % 6 : m === g ? (b - r) / d + 2 : (r - g) / d + 4; return (h * 60 + 360) % 360; };
 
-export function createSound(engine, primary, { off = false } = {}) {
+export function createSound(engine, primary, { off = false, shift = 0 } = {}) {
   let c = null, out = null, muted = off, nb = null;
-  const h = hue(primary), root = 220 * 2 ** ((Math.round(h / 30) % 7) / 12), sc = SCALES[Math.floor(h / 60) % SCALES.length];
+  const h = hue(primary), root = 220 * 2 ** ((Math.round(h / 30) % 7 + shift) / 12), sc = SCALES[Math.floor(h / 60) % SCALES.length];
   const note = (i, oct = 0) => root * 2 ** ((sc[i % sc.length] + 12 * (Math.floor(i / sc.length) + oct)) / 12);
   const ac = () => {
     if (c) return c; const A = window.AudioContext || window.webkitAudioContext; if (!A) return null;

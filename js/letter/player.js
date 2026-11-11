@@ -1,8 +1,9 @@
 /* Plays a digital letter inside a host element. Used by the public viewer (/letter/<id>) and by the editor's live preview (iframe).
    A "letter" is { engine, content }. The engine (see engines.js) decides the story: cover -> reveal -> letter -> closing. */
-import { createFx } from "./fx.js";
-import { ENGINES } from "./engines.js";
-import { createSound } from "./sound.js";
+import { createFx } from "./fx.js?v=20261111a";
+import { ENGINES, ambient } from "./engines.js?v=20261111a";
+import { createSound } from "./sound.js?v=20261111a";
+import { resolveProfile, ATMO } from "./profiles.js?v=20261111a";
 
 export const FONTS = {
   serif: ["'Cormorant Garamond',Georgia,serif", "Cormorant+Garamond:ital,wght@0,400;0,600;1,400"],
@@ -24,7 +25,12 @@ function loadFont(key) {
 }
 const SKINS = ["meadow", "roses", "sakura", "bold", "gold", "lineart"];
 let skinCss = false;
-function loadSkins() { if (skinCss) return; skinCss = true; const l = document.createElement("link"); l.rel = "stylesheet"; l.href = new URL("../../css/letter-skins.css?v=20261109a", import.meta.url).href; document.head.append(l); }
+function loadSkins() { if (skinCss) return; skinCss = true; const l = document.createElement("link"); l.rel = "stylesheet"; l.href = new URL("../../css/letter-skins.css?v=20261111a", import.meta.url).href; document.head.append(l); }
+let motionCss = false;
+function loadMotion() { if (motionCss) return; motionCss = true; const l = document.createElement("link"); l.rel = "stylesheet"; l.href = new URL("../../css/letter-motion.css?v=20261111a", import.meta.url).href; document.head.append(l); }
+/* reveal a text in words or lines (motion profiles). Tokens are DOM text nodes (never HTML); a tap shows everything. */
+const sentences = (seg) => { if (/^\n+$/.test(seg)) return [seg]; const m = seg.match(/[^.!?…]+[.!?…]+["')\]]*\s*|[^.!?…]+$/g); return m && m.join("") === seg ? m : [seg]; };
+const LINE_MODES = new Set(["line", "para", "glow", "mask", "caption", "formal"]);
 const okUrl = (u) => (/^https:\/\//i.test(u || "") ? u : "");
 
 export function createPlayer(host, { preview = false, makeUrl = "../#/letters" } = {}) {
@@ -34,41 +40,62 @@ export function createPlayer(host, { preview = false, makeUrl = "../#/letters" }
   function destroy() { run++; fx?.destroy(); fx = null; snd?.destroy(); snd = null; if (audio) { audio.pause(); audio = null; } root?.remove(); root = null; }
 
   function play(letter) {
-    destroy(); const my = run, c = normalize(letter.content), eng = ENGINES[letter.engine] || ENGINES.envelope;
-    loadFont(c.font);
+    destroy(); const my = run, c = normalize(letter.content), eng = ENGINES[letter.engine] || ENGINES.envelope, mp = resolveProfile(letter);
+    loadFont(c.font); if (mp) { loadMotion(); if (mp.font) loadFont(mp.font); }
     root = document.createElement("div"); root.className = `lt lt-${letter.engine in ENGINES ? letter.engine : "envelope"}${preview ? " lt-lite" : ""}`;
     const th = c.theme; root.style.setProperty("--p", th.primary); root.style.setProperty("--a", th.accent); root.style.setProperty("--bg", th.bg); root.style.setProperty("--paper", th.paper);
     root.style.setProperty("--ink", lum(th.paper) > .45 ? "#2b2320" : "#f5efe8"); root.style.setProperty("--onbg", lum(th.bg) > .45 ? "#2b2320" : "#f7f2ec");
     root.style.setProperty("--onp", lum(th.primary) > .45 ? "#2b2320" : "#ffffff"); root.style.setProperty("--font", FONTS[c.font][0]);
     root.dataset.decor = c.decor.join(" ");
+    if (mp) {
+      root.classList.add("mp", "mp-" + mp.key); root.dataset.tr = mp.tr; root.dataset.strip = mp.strip; root.dataset.rv = mp.reveal;
+      if (mp.font) root.style.setProperty("--mfont", FONTS[mp.font][0]);
+      const at = document.createElement("div"); at.className = `lt-atmo at-${mp.atmo}`; at.setAttribute("aria-hidden", "true"); at.innerHTML = ATMO[mp.atmo] || ""; root.append(at);
+    }
     if (c.skin) { root.dataset.skin = c.skin; loadSkins(); const dc = document.createElement("div"); dc.className = "lt-deco"; dc.setAttribute("aria-hidden", "true"); dc.innerHTML = "<i class=d1></i><i class=d2></i><i class=d3></i><i class=d4></i>"; root.append(dc); }
     const stage = document.createElement("div"); stage.className = "lt-stage"; root.append(stage); host.append(root);
     fx = createFx(root, () => [th.primary, th.accent, "#ffffff", th.paper], reduced, { lite: preview });
     if (letter.quick) c.effects = c.effects.filter((e) => !["opening", "typing", "closing"].includes(e));
-    snd = createSound(letter.engine in ENGINES ? letter.engine : "envelope", th.primary, { off: reduced }); let opened = false;
+    snd = createSound(mp?.voice || (letter.engine in ENGINES ? letter.engine : "envelope"), th.primary, { off: reduced, shift: mp?.shift || 0 }); let opened = false;
     const S = STR[c.lang] || STR.id, alive = () => my === run, tapQ = [];
     stage.addEventListener("click", (e) => { if (!e.target.closest("button,a,.lt-lightbox")) tapQ.splice(0).forEach((r) => r()); });
     const wait = (ms) => new Promise((r) => setTimeout(r, reduced ? Math.min(ms, 80) : ms)).then(() => { if (!alive()) return new Promise(() => {}); });
     const nextTap = () => new Promise((r) => tapQ.push(r));
     let cur = null;
     const ctx = {
-      c, t: S, reduced, quick: !!letter.quick, stage, alive, wait, nextTap, preview, makeUrl, fx,
+      c, t: S, reduced, quick: !!letter.quick, stage, alive, wait, nextTap, preview, makeUrl, fx, mp, ambient: () => ambient(ctx),
       sfx: (n) => snd?.play(n), has: (k) => c.effects.includes(k), decor: (k) => c.decor.includes(k),
       scene(html, cls = "") {
         const el = document.createElement("section"); el.className = `lt-scene ${cls}`; el.innerHTML = html;
         const old = cur; cur = el; stage.append(el); el.getBoundingClientRect(); el.classList.add("in");
-        if (old) { old.classList.add("out"); setTimeout(() => old.remove(), 700); } return el;
+        if (old) { old.classList.add("out"); setTimeout(() => old.remove(), mp ? 1600 : 700); } return el;
       },
       press(el) { return new Promise((r) => el.addEventListener("click", () => { startMusic(); snd?.play(opened ? "reveal" : "open"); opened = true; r(); }, { once: true })); },
       async type(el, text) {
         if (!ctx.has("typing") || reduced) { el.textContent = text; return; }
+        if (mp && mp.reveal !== "typewriter") return reveal(el, text, mp.reveal);
         el.textContent = ""; let i = 0, skip = false; nextTap().then(() => { skip = true; });
-        const d = Math.max(10, Math.min(42, 15000 / Math.max(1, text.length))), sc = el.closest(".scroll");
+        const tw = mp?.reveal === "typewriter"; if (tw) el.classList.add("tw-caret");
+        const d = Math.max(10, Math.min(42, 15000 / Math.max(1, text.length))) * (tw ? 1.6 : 1), sc = el.closest(".scroll");
         while (i < text.length && !skip && alive()) { i++; if (i % 3 === 0 && /\S/.test(text[i - 1])) ctx.sfx("tick"); el.textContent = text.slice(0, i); if (sc && i % 6 === 0) sc.scrollTop = sc.scrollHeight; await wait(d * (/[.!?\n]/.test(text[i - 1]) ? 7 : /[,;]/.test(text[i - 1]) ? 3 : 1)); }
-        if (alive()) { el.textContent = text; if (sc) sc.scrollTop = sc.scrollHeight; }
+        if (alive()) { el.textContent = text; if (sc) sc.scrollTop = sc.scrollHeight; el.classList.remove("tw-caret"); }
       },
       replay: () => play(letter),
     };
+    async function reveal(el, text, mode) {
+      const line = LINE_MODES.has(mode), parts = line ? text.split(/(\n+)/).flatMap(sentences) : text.split(/(\s+)/), toks = [];
+      el.textContent = ""; el.classList.add("rv", "rv-" + mode);
+      parts.forEach((p) => { if (!p) return; if (/^\s+$/.test(p)) { el.append(p); return; } const sp = document.createElement("span"); sp.className = line ? "rl" : "rw"; sp.textContent = p; sp.style.setProperty("--z", toks.length % 2 ? 1 : -1); sp.style.setProperty("--rx", (Math.random() * 60 - 30).toFixed(0)); sp.style.setProperty("--ry", (Math.random() * 40 - 20).toFixed(0)); el.append(sp); toks.push(sp); });
+      if (mode === "marker") toks.forEach((tk, i) => { if (i % 6 === 3 && tk.textContent.length > 3) tk.classList.add("hl"); });
+      let skip = false; nextTap().then(() => { skip = true; });
+      const k = mp.tempo || 1, step = (line ? Math.max(380, Math.min(1300, 14000 / Math.max(1, toks.length))) : Math.max(45, Math.min(170, 11000 / Math.max(1, toks.length)))) * k, sc = el.closest(".scroll");
+      for (let i = 0; i < toks.length && !skip && alive(); i++) {
+        toks[i].classList.add("on"); if (i % (line ? 1 : 3) === 0) ctx.sfx("tick");
+        if (sc && i % (line ? 1 : 5) === 0) { const y = toks[i].getBoundingClientRect().bottom - sc.getBoundingClientRect().bottom; if (y > -40) sc.scrollTop += y + 80; }
+        await wait(step * (/[.!?]$/.test(toks[i].textContent) && !line ? 3.2 : /[,;]$/.test(toks[i].textContent) ? 1.8 : 1));
+      }
+      if (!alive()) return; el.classList.add("rv-done"); toks.forEach((tk) => tk.classList.add("on")); if (sc) sc.scrollTop = sc.scrollHeight;
+    }
     function startMusic() {
       if (root.querySelector(".lt-mute")) return;
       if (c.music && okUrl(c.music.url) && !audio) { audio = new Audio(c.music.url); audio.loop = true; audio.volume = .6; audio.play().catch(() => {}); }

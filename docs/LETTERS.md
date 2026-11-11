@@ -51,3 +51,34 @@ Particles run at 0.55× speed (`SPEED` in fx.js). The editor preview iframe uses
 
 ## Desktop layout
 At ≥900×640 the covers (envelope, box, cake, book) are zoomed 1.55×, the paper widens to 780px, type scales up and skin art grows; the paper is vertically centred at every size.
+
+## Motion profiles (v3) — every template moves differently
+Before v3 the five engines each told one story and `motion.js` played the same kinetic-type intro for every template, so templates on the same engine only differed by colour. A **motion profile** now gives each template its own film on top of its engine. Pick one in **Admin → Digital Letters → Templates → Motion profile** (stored in `letter_templates.defaults.motion`; "Engine default" = the old behaviour). `letter_get` returns the template's current profile, so changing it in admin also changes letters already sent.
+
+| Template | Profile | Opening | Intro type | Text reveal | Transition | Particles | Finale |
+|---|---|---|---|---|---|---|---|
+| midnight-rose | rose-wax | wax seal cracks, slow flap | gold mask rise | sentence fade | blur dissolve | rose petals | petal shower, gold name |
+| wildflower-letter | wind-meadow | envelope sways, flap flutters, flowers grow | pencil wipe | word pencil | wind slide | dandelion fluff | meadow grows |
+| vintage-roses | gold-ribbon | gold twine + bow untie, corners draw | gold foil shine | paragraph tint | iris | gold dust | ornament frame |
+| warm-thanks | dusk-lamp | warm light sweep, envelope sinks into rays | light bulbs | line glow | warm brighten | fireflies | lanterns |
+| for-mom-and-dad | vine-fold | tri-fold letter unfolds | typewriter + caret | typewriter | wipe down | leaves | leaf wreath |
+| little-note | hop-note | mini envelope hops (squash & stretch) | bounce drop | word pop | pop | glyph stickers | sticker ring |
+| love-in-lines | line-heart | single line draws a heart | outline → fill | line ink wipe | wipe right | motes | heart line |
+| sakura-dream | sakura-drift | blur-to-focus title, petal gust | blur to sharp | word blur | dream | sakura (3D flip) | petal storm |
+| golden-night | gold-night | stars converge into a ring, flash | stars fly into letters | gold glint | flash | shooting stars + dust | gold fireworks + rays |
+| im-sorry | rain-ink | ink drop, ripples, ink fills the screen | ink bleed | word ink | slow fade | rain | rain stops, dawn (no confetti) |
+| just-because | aurora-shuffle | words shuffle into place | shuffle | scatter | rise | bubbles | aurora flare |
+| botanical-lines | ink-botanical | line-art branch draws on the cover | letterpress | word stamp | wipe left | line sprigs | wreath draws |
+| thank-you-scrapbook | stamp-tape | stamp slams, tape peels | tape pop + highlighter | marker | shuffle | paper scraps | stamp |
+| family-album | album-flip | album pages riffle | sepia caption | caption | page turn | hearts | photo collage |
+| best-friends | sticker-pop | jittery book bursts open | zig-zag | word zig | snap | spinning stars | sticker boom |
+| cap-and-gown | cap-toss | diploma cover, caps fly | certificate tracking | formal | precise | gold streamers | caps toss |
+| peony-box | peony-bloom | bow unties, peony blooms from the box | bloom from centre | word bloom | bloom | soft peony petals | big bloom |
+| surprise-box | shake-burst | box shakes harder, lid explodes | pop | burst | zoom | falling confetti | confetti cannons |
+| friend-box | door-box | box doors open, items hop out | hop | word hop | side | sparkles | hopping stars |
+| graduation-gift | scroll-roll | lid lifts, diploma scroll unrolls | split-flap board | flap | shutter | glitter | gold seal |
+| make-a-wish | wish-smoke | candles out, smoke curls, fireworks | balloon letters bob | float | float | balloons | fireworks + balloons |
+
+Code: `js/letter/profiles.js` (registry + atmosphere markup), `js/letter/openings.js` (covers), `js/letter/motion.js` (intro beats/tempo), `js/letter/engines.js` (`mpOpen`, `finale`), `js/letter/player.js` (profile resolve, atmosphere layer, `reveal()`), `js/letter/fx.js` (particle kinds + `burst`, `fireworks`), `css/letter-motion.css` (all motion styles, lazy-loaded), `css/letters.css` (`.ltm-<profile>` gallery thumbnail loops). Each profile also sets the sound voice and pitch (`sound.js` `shift`). Reduced motion keeps the static fallbacks; the editor preview runs in lite mode.
+
+**Adding a profile:** add an entry to `PROFILES` (pick or write an opening, a `--kf` text keyframe, a reveal mode, a `data-tr` transition, an atmosphere, particle kinds and a finale), add its CSS in `letter-motion.css`, then choose it in admin.

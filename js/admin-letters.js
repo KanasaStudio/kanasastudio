@@ -1,6 +1,7 @@
 /* Admin: Digital Letters — orders/letters, templates, categories, plans & add-ons. */
 import { sb, esc, toast, fld, chk, busy, must } from "./admin-lib.js";
 import { $, $$, money, slugify } from "./util.js";
+import { PROFILES } from "./letter/profiles.js?v=20261111a";
 
 const TABS = [["", "Letters & orders"], ["templates", "Templates"], ["categories", "Categories"], ["pricing", "Plans & add-ons"]];
 const ENGINES = ["envelope", "giftbox", "cake", "scrapbook", "cinematic"];
@@ -59,6 +60,7 @@ async function templates(el) {
   const form = (t) => { const d = t?.defaults || {}, th = d.theme || {}, o = t?.options || {};
     return `<form class="tf panel" data-slug="${esc(t?.slug || "")}" style="margin:0 0 .8rem"><div class="cols">${fld("name", t ? "Name" : "New template name", t?.name, { attrs: "required maxlength=80" })}${fld("slug", "Slug", t?.slug, { attrs: `required ${t ? "readonly" : ""}` })}
      ${fld("category_slug", "Category", t?.category_slug, { opts: cats.map((c) => [c.slug, c.name]) })}${fld("engine", "Animation engine", t?.engine || "envelope", { opts: ENGINES.map((x) => [x, x]) })}</div>
+     ${fld("motion", "Motion profile (cover, kinetic type, text reveal, particles, finale)", d.motion || "", { opts: [["", "— Engine default (no profile) —"], ...Object.entries(PROFILES).map(([k, v]) => [k, `${v.label}${v.slug === t?.slug ? " ★" : ""}`])] })}
      ${fld("tagline", "Tagline", t?.tagline, { attrs: "maxlength=200" })}
      <div class="cols">${fld("tier", "Tier", t?.tier || "free", { opts: [["free", "Free"], ["premium", "Premium"]] })}${fld("price_idr", "Template price (IDR, premium only)", t?.price_idr ?? 0, { type: "number", attrs: 'min="0"' })}${fld("tags", "Themes (comma separated: romantic, cute, elegant, playful, minimal, dark)", (t?.tags || []).join(", "))}${fld("sort_order", "Order", t?.sort_order ?? 100, { type: "number" })}</div>
      ${fld("thumbnail_url", "Thumbnail image URL (optional — otherwise an animated mini scene is drawn)", t?.thumbnail_url, { attrs: 'type="url"' })}
@@ -75,7 +77,7 @@ async function templates(el) {
       if (!g("message").value.trim()) throw new Error("Add a default message.");
       const row = { slug, name: g("name").value.trim(), category_slug: g("category_slug").value, engine: g("engine").value, tagline: g("tagline").value.trim() || null, tier: g("tier").value, price_idr: g("tier").value === "premium" ? +g("price_idr").value || 0 : 0,
         tags: csvOf(g("tags").value), sort_order: +g("sort_order").value || 0, thumbnail_url: g("thumbnail_url").value.trim() || null, is_active: g("is_active").checked, is_featured: g("is_featured").checked, updated_at: new Date().toISOString(),
-        defaults: { title: g("title").value.trim(), message: g("message").value, from: "", to: "", lang: g("lang").value, font: g("font").value, theme, effects: fx, decor: dec }, options: { effects: fx, decor: dec } };
+        defaults: { ...(tpls.find((x) => x.slug === slug0)?.defaults || {}), title: g("title").value.trim(), message: g("message").value, from: "", to: "", lang: g("lang").value, font: g("font").value, theme, effects: fx, decor: dec, motion: g("motion").value || undefined }, options: { effects: fx, decor: dec } };
       if (slug0) must(await sb.from("letter_templates").update(row).eq("slug", slug0)); else must(await sb.from("letter_templates").insert(row));
       toast("Saved.", "ok"); reload("templates"); }); });
 }

@@ -3,6 +3,7 @@
    Players live in /letter/ (viewer) and are shown here inside an iframe so the preview matches what the recipient gets. */
 import { sb } from "./db.js";
 import { esc, $, $$, money, store, toast, fmtDate } from "./util.js";
+import { BY_SLUG as MOTION_BY_SLUG } from "./letter/profiles.js?v=20261111a";
 
 const H = { setMeta() {}, set: () => ({}) };
 const FXL = { opening: ["Opening scene", "A cover to tap (envelope, gift box, cake…) before the letter appears."], typing: ["Typing text", "The message is written out letter by letter. Tap to skip."], hearts: ["Floating hearts", "Soft hearts drift up the screen."], confetti: ["Confetti", "A burst of confetti when it opens and at the end."], petals: ["Falling petals", "Flower petals drift down."], sparkles: ["Sparkles", "Twinkling stars in the background."], gallery: ["Photo gallery", "Show your photos with the letter."], closing: ["Closing scene", "A final card with your name before it ends."] };
@@ -42,7 +43,7 @@ const linkOf = (id) => `${base()}letter/${id}`;
 const editLink = (id, tok) => `${base()}#/letters/edit/${id}?k=${tok}`;
 
 /* ---------- catalog (step 1) ---------- */
-const mini = (t) => { const th = t.defaults?.theme || {}; return `<div class="ltm ltm-${esc(t.engine)}" style="--p:${hex(th.primary, "#8b1e3f")};--a:${hex(th.accent, "#e8b4b8")};--bg:${hex(th.bg, "#1a0d12")};--paper:${hex(th.paper, "#fbf3ea")}" aria-hidden="true"><i></i><i></i><i></i><i></i></div>`; };
+const mini = (t) => { const th = t.defaults?.theme || {}; const mk = /^[a-z-]{2,40}$/.test(t.defaults?.motion || "") ? t.defaults.motion : (MOTION_BY_SLUG[t.slug] || ""); return `<div class="ltm ltm-${esc(t.engine)}${mk ? " ltm-m ltm-" + mk : ""}" style="--p:${hex(th.primary, "#8b1e3f")};--a:${hex(th.accent, "#e8b4b8")};--bg:${hex(th.bg, "#1a0d12")};--paper:${hex(th.paper, "#fbf3ea")}" aria-hidden="true"><i></i><i></i><i></i><i></i>${mk ? "<b></b><b></b>" : ""}</div>`; };
 function card(t, cats) {
   const cn = cats.find((c) => c.slug === t.category_slug)?.name || "";
   return `<article class="lt-card"><div class="lt-thumb">${t.thumbnail_url ? `<img src="${esc(t.thumbnail_url)}" alt="" loading="lazy">` : mini(t)}</div>
@@ -84,7 +85,7 @@ function mountPreview(host, getLetter) {
 const sampleContent = (t) => ({ ...(t.defaults || {}), from: "Seseorang yang sayang kamu", to: "Kamu", date: new Date().toISOString().slice(0, 10), photos: [] });
 function openPreview(slug) {
   const t = DATA?.tpls.find((x) => x.slug === slug); if (!t) return;
-  openModal(t.name, () => ({ engine: t.engine, content: sampleContent(t) }), `<a class="btn" href="#/letters/new/${esc(t.slug)}">Use this template</a>`);
+  openModal(t.name, () => ({ engine: t.engine, motion: t.defaults?.motion || "", template: t.slug, content: sampleContent(t) }), `<a class="btn" href="#/letters/new/${esc(t.slug)}">Use this template</a>`);
 }
 function openModal(title, getLetter, footer) {
   closeModal(); const prev = document.activeElement;
@@ -120,7 +121,7 @@ function newState(t) {
     c: draft?.c || { from: store.get("kns_ltname", ""), to: "", title: d.title || "", message: d.message || "", date: "", lang: d.lang || "id", font: d.font || "serif",
       theme: { primary: hex(th.primary, "#8b1e3f"), accent: hex(th.accent, "#e8b4b8"), bg: hex(th.bg, "#1a0d12"), paper: hex(th.paper, "#fbf3ea") }, effects: [...(d.effects || [])], decor: [...(d.decor || [])], photos: [], gifs: [], skin: d.skin || "", music: null } };
 }
-const letterOf = () => ({ engine: ED.tpl?.engine || ED.engine || "envelope", content: ED.c });
+const letterOf = () => ({ engine: ED.tpl?.engine || ED.engine || "envelope", motion: ED.tpl?.defaults?.motion || "", template: ED.tpl?.slug || "", content: ED.c });
 let saveT = 0, sendT = 0;
 function changed(rerender) {
   if (ED.mode === "new") { clearTimeout(saveT); saveT = setTimeout(() => store.set("kns_ltdraft_" + ED.tpl.slug, { c: ED.c, addons: [...ED.addons], planId: ED.planId }), 400); }

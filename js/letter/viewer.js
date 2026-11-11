@@ -1,6 +1,6 @@
 /* Public viewer for /letter/<id> (also used as the editor's live-preview iframe at /letter/#preview). */
-import { sb } from "../db.js?v=20261109a";
-import { createPlayer } from "./player.js?v=20261109a";
+import { sb } from "../db.js?v=20261111a";
+import { createPlayer } from "./player.js?v=20261111a";
 
 const host = document.getElementById("host"), msg = document.getElementById("msg");
 const player = createPlayer(host, { preview: location.hash === "#preview", makeUrl: "../#/letters" });
@@ -29,6 +29,6 @@ if (location.hash === "#preview") {
     if (error || !data) return say("Could not open this gift", navigator.onLine ? "Please try again in a moment." : "You are offline. Reconnect and try again.", false);
     if (data.state !== "ok") return say(...(TEXT[data.state] || TEXT.missing));
     msg.hidden = true; document.title = data.content?.to ? `A gift for ${data.content.to}` : "A digital gift for you";
-    player.play({ engine: data.engine, content: data.content });
+    player.play({ engine: data.engine, content: data.content, template: data.template || "", motion: data.motion || "" });
   });
 }

@@ -1,7 +1,0 @@
-node_modules/
-app/dist/
-app/qa/
-.DS_Store
-*.log
-.env
-.env.*

@@ -1,0 +1,161 @@
+@import "tailwindcss";
+@import "@fontsource-variable/nunito";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* Token warna: terang = krem/oranye/hitam (referensi desain), gelap = navy KANASA. */
+:root {
+  --bg: #f6f1ea;
+  --surface: #ffffff;
+  --surface-2: #fbf8f4;
+  --line: #ebe3d8;
+  --text: #1d1a17;
+  --muted: #7b7168;
+  --ink: #1b1b1b;
+  --ink-text: #ffffff;
+  --accent: #f7931e;
+  --accent-strong: #e87d05;
+  --accent-soft: #fff0df;
+  --accent-text: #9a4d00;
+  --ok: #16a34a;
+  --ok-soft: #e7f7ec;
+  --warn: #d97706;
+  --warn-soft: #fff4e0;
+  --bad: #dc2626;
+  --bad-soft: #fdecec;
+  --info: #0284c7;
+  --info-soft: #e6f4fb;
+  --shadow: 0 1px 2px rgb(60 40 20 / 0.05), 0 6px 20px -8px rgb(60 40 20 / 0.12);
+  color-scheme: light;
+}
+
+.dark {
+  --bg: #070c1a;
+  --surface: #101830;
+  --surface-2: #0c1326;
+  --line: #1d2945;
+  --text: #edf1f8;
+  --muted: #8a96b3;
+  --ink: #060b19;
+  --ink-text: #ffffff;
+  --accent: #f7931e;
+  --accent-strong: #ffa53d;
+  --accent-soft: #2a1d10;
+  --accent-text: #ffb766;
+  --ok: #4ade80;
+  --ok-soft: #0f2a1c;
+  --warn: #fbbf24;
+  --warn-soft: #2b2110;
+  --bad: #f87171;
+  --bad-soft: #2d1414;
+  --info: #38bdf8;
+  --info-soft: #0c2235;
+  --shadow: 0 1px 2px rgb(0 0 0 / 0.3), 0 10px 28px -12px rgb(0 0 0 / 0.6);
+  color-scheme: dark;
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-line: var(--line);
+  --color-text: var(--text);
+  --color-muted: var(--muted);
+  --color-ink: var(--ink);
+  --color-ink-text: var(--ink-text);
+  --color-accent: var(--accent);
+  --color-accent-strong: var(--accent-strong);
+  --color-accent-soft: var(--accent-soft);
+  --color-accent-text: var(--accent-text);
+  --color-ok: var(--ok);
+  --color-ok-soft: var(--ok-soft);
+  --color-warn: var(--warn);
+  --color-warn-soft: var(--warn-soft);
+  --color-bad: var(--bad);
+  --color-bad-soft: var(--bad-soft);
+  --color-info: var(--info);
+  --color-info-soft: var(--info-soft);
+  --font-sans: "Nunito Variable", ui-rounded, system-ui, sans-serif;
+  --shadow-card: var(--shadow);
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior: none;
+}
+
+button {
+  cursor: pointer;
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.scroll-thin {
+  scrollbar-width: thin;
+}
+.no-scrollbar {
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.pb-safe {
+  padding-bottom: max(env(safe-area-inset-bottom), 0px);
+}
+.pt-safe {
+  padding-top: max(env(safe-area-inset-top), 0px);
+}
+
+/* Konten markdown hasil kerja AI */
+.md {
+  line-height: 1.6;
+  font-size: 0.92rem;
+  overflow-wrap: anywhere;
+}
+.md h1,
+.md h2,
+.md h3 {
+  font-weight: 800;
+  margin: 1em 0 0.4em;
+  line-height: 1.3;
+}
+.md h1 { font-size: 1.15rem; }
+.md h2 { font-size: 1.05rem; }
+.md h3 { font-size: 0.98rem; }
+.md p { margin: 0.5em 0; }
+.md ul, .md ol { padding-left: 1.2em; margin: 0.4em 0; }
+.md ul { list-style: disc; }
+.md ol { list-style: decimal; }
+.md a { color: var(--accent-text); text-decoration: underline; }
+.md code { background: var(--surface-2); border: 1px solid var(--line); border-radius: 6px; padding: 0 4px; font-size: 0.85em; }
+.md pre { background: var(--surface-2); border: 1px solid var(--line); border-radius: 12px; padding: 10px; overflow-x: auto; font-size: 0.8rem; }
+.md pre code { border: 0; padding: 0; background: none; }
+.md blockquote { border-left: 3px solid var(--accent); padding-left: 10px; color: var(--muted); margin: 0.6em 0; }
+.md table { border-collapse: collapse; width: 100%; font-size: 0.82rem; display: block; overflow-x: auto; }
+.md th, .md td { border: 1px solid var(--line); padding: 4px 8px; text-align: left; }
+.md hr { border: 0; border-top: 1px solid var(--line); margin: 1em 0; }
+
+@keyframes bubble-in {
+  from { opacity: 0; transform: translateY(6px) scale(0.9); }
+  to { opacity: 1; transform: none; }
+}
+.bubble-in { animation: bubble-in 0.25s ease-out; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+}
